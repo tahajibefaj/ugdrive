@@ -244,8 +244,9 @@ function copyResetLink(){
 // Enter key
 document.addEventListener('keydown',e=>{
   if(e.key!=='Enter')return;
-  if(document.getElementById('form-login').style.display!=='none')doLogin();
-  else doRegister();
+  if(document.getElementById('form-login').style.display!=='none') doLogin();
+  else if(document.getElementById('form-register').style.display!=='none') doRegister();
+  else doForgot();
 });
 </script>
 </body>

@@ -158,6 +158,19 @@ async def dashboard(request: Request):
         return RedirectResponse("/login")
     return html("dashboard.html")
 
+
+@app.get("/profile", response_class=HTMLResponse)
+async def profile_page(request: Request):
+    if not get_user(request):
+        return RedirectResponse("/login")
+    return html("profile.html")
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    if not get_user(request):
+        return RedirectResponse("/login")
+    return html("settings.html")
+
 @app.get("/api/ping")
 async def ping():
     return {"ok": True, "ts": int(time.time())}
@@ -403,6 +416,7 @@ async def list_files(
     account_id: Optional[int] = None,
     trashed: bool = False,
     q: Optional[str] = None,
+    parent_gid: Optional[str] = None,
     limit: int = 500,
     offset: int = 0,
 ):
