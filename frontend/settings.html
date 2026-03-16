@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UG Drive • Settings</title>
+  <style>
+    :root{
+      --bg:#0d1117; --bg2:#161b22; --bg3:#21262d; --text:#e6edf3; --muted:#8b949e;
+      --green:#2ea043; --green2:#56d364; --border:#30363d; --red:#f85149;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:760px;margin:28px auto;padding:0 16px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .back{color:var(--green2);text-decoration:none;font-size:.92rem}
+    .back:hover{text-decoration:underline}
+    .title{margin:0;font-size:1.35rem}
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
+    .sub{margin:2px 0 16px;color:var(--muted);font-size:.9rem}
+    label{display:block;font-size:.85rem;color:var(--muted);margin:10px 0 6px}
+    input{width:100%;padding:10px;border-radius:10px;border:1px solid var(--border);background:var(--bg3);color:var(--text);outline:none}
+    input:focus{border-color:var(--green)}
+    .btn{margin-top:14px;background:var(--green);color:#fff;border:0;padding:10px 14px;border-radius:10px;cursor:pointer;font-weight:600}
+    .btn:disabled{opacity:.7;cursor:not-allowed}
+    .msg{margin-top:12px;font-size:.9rem}
+    .ok{color:var(--green2)}
+    .err{color:var(--red)}
+    .tips{margin-top:18px;padding-top:14px;border-top:1px solid var(--border);color:var(--muted);font-size:.86rem;line-height:1.45}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="/dashboard">← Back to dashboard</a>
+      <h1 class="title">Settings</h1>
+      <a class="back" href="/profile">Go to profile →</a>
+    </div>
+
+    <section class="card">
+      <h2 style="margin:0">Reset password with verification code</h2>
+      <p class="sub">Request a code to your email, then set a new password.</p>
+
+      <label for="em">Email</label>
+      <input id="em" type="email" autocomplete="email" />
+      <button id="send-btn" class="btn" onclick="sendCode()">Send Code</button>
+
+      <div id="step2" style="display:none">
+        <label for="code">Verification code</label>
+        <input id="code" type="text" inputmode="numeric" />
+
+        <label for="nw">New password (minimum 8 characters)</label>
+        <input id="nw" type="password" autocomplete="new-password" />
+
+        <label for="cf">Confirm new password</label>
+        <input id="cf" type="password" autocomplete="new-password" />
+
+        <button id="save-btn" class="btn" onclick="save()">Reset password</button>
+      </div>
+      <div id="msg" class="msg"></div>
+
+      <div class="tips">
+        Forgot your current password? Use the <strong>Forgot password</strong> tab on the login page to request a verification code.
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const emEl  = document.getElementById('em');
+    const codeEl = document.getElementById('code');
+    const nwEl  = document.getElementById('nw');
+    const cfEl  = document.getElementById('cf');
+    const msgEl = document.getElementById('msg');
+    const btnEl = document.getElementById('save-btn');
+    const sendBtn = document.getElementById('send-btn');
+
+    function setMsg(text, ok){
+      msgEl.textContent = text;
+      msgEl.className = 'msg ' + (ok ? 'ok' : 'err');
+    }
+
+    async function save(){
+      const email = emEl.value.trim();
+      const code = codeEl.value.trim();
+      const new_password = nwEl.value;
+      const confirm = cfEl.value;
+
+      if(!email || !code || !new_password || !confirm){ setMsg('Please fill all fields.', false); return; }
+      if(new_password.length < 8){ setMsg('New password must be at least 8 characters.', false); return; }
+      if(new_password !== confirm){ setMsg('New password and confirmation do not match.', false); return; }
+
+      btnEl.disabled = true;
+      btnEl.textContent = 'Updating…';
+      try{
+        const r = await fetch('/auth/reset-password', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body:JSON.stringify({ email, code, new_password })
+        });
+        const d = await r.json().catch(() => ({ detail:'Request failed' }));
+        if(!r.ok){ setMsg(d.detail || 'Could not update password.', false); return; }
+        codeEl.value=''; nwEl.value=''; cfEl.value='';
+        setMsg('Password updated successfully.', true);
+        setTimeout(()=>location.href='/login', 800);
+      }catch{
+        setMsg('Connection error. Please try again.', false);
+      }finally{
+        btnEl.disabled = false;
+        btnEl.textContent = 'Update password';
+      }
+    }
+
+    async function sendCode(){
+      const email = emEl.value.trim();
+      if(!email){ setMsg('Please enter your email.', false); return; }
+      sendBtn.disabled = true; sendBtn.textContent = 'Sending…';
+      try{
+        const r = await fetch('/auth/request-password-reset', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})});
+        const d = await r.json().catch(() => ({ detail:'Request failed' }));
+        if(!r.ok){ setMsg(d.detail || 'Could not send code.', false); return; }
+        document.getElementById('step2').style.display = 'block';
+        setMsg('If this email exists, verification code was sent.', true);
+      }catch{
+        setMsg('Connection error. Please try again.', false);
+      }finally{
+        sendBtn.disabled = false; sendBtn.textContent = 'Send Code';
+      }
+    }
+
+    [emEl, codeEl, nwEl, cfEl].forEach(el => {
+      el.addEventListener('keydown', e => { if(e.key === 'Enter') save(); });
+    });
+  </script>
+</body>
+</html>

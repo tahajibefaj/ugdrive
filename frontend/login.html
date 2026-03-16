@@ -31,8 +31,6 @@ body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-h
 .submit{width:100%;padding:.65rem;background:var(--green);border:1px solid var(--green-border);color:#fff;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;transition:background .15s;margin-top:.25rem}
 .submit:hover{background:var(--green-h)}
 .submit:disabled{opacity:.5;cursor:not-allowed}
-.divider{display:flex;align-items:center;gap:.75rem;margin:1.25rem 0;color:var(--text3);font-size:.78rem}
-.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
 .err{background:var(--red-bg);border:1px solid var(--red);color:var(--red);padding:.6rem .875rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem;display:none}
 .err.show{display:block}
 .ok-msg{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green-glow);padding:.6rem .875rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem;display:none}
@@ -42,6 +40,16 @@ body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-h
 .theme-btn{position:absolute;top:1rem;right:1rem;width:30px;height:30px;border:1px solid var(--border);border-radius:7px;background:none;cursor:pointer;font-size:.85rem;display:grid;place-items:center;color:var(--text2)}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .6s linear infinite;vertical-align:middle;margin-right:.4rem}
 @keyframes rot{to{transform:rotate(360deg)}}
+
+/* reset modal */
+.modal-wrap{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;padding:1rem;z-index:1000}
+.modal-wrap.open{display:flex}
+.modal{width:100%;max-width:430px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:1rem}
+.modal-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:.8rem}
+.modal-title{font-weight:700}
+.modal-close{border:0;background:none;color:var(--text2);font-size:1.1rem;cursor:pointer}
+.modal-msg{font-size:.8rem;color:var(--text2);margin-bottom:.75rem;line-height:1.45}
+.hidden{display:none}
 </style>
 </head>
 <body>
@@ -57,7 +65,6 @@ body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-h
   <div class="err" id="err"></div>
   <div class="ok-msg" id="ok"></div>
 
-  <!-- LOGIN FORM -->
   <div id="form-login">
     <div class="field">
       <label class="label">Email</label>
@@ -71,28 +78,11 @@ body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-h
       </div>
     </div>
     <div style="text-align:right;margin-top:-.3rem;margin-bottom:.875rem">
-      <a href="#" id="forgot-link" onclick="switchTab('forgot');return false" style="font-size:.78rem;color:var(--green-glow);text-decoration:none">Forgot password?</a>
+      <a href="#" id="forgot-link" onclick="openResetModal();return false" style="font-size:.78rem;color:var(--green-glow);text-decoration:none">Forgot password?</a>
     </div>
     <button class="submit" id="l-btn" onclick="doLogin()">Sign in</button>
   </div>
 
-  <!-- FORGOT PASSWORD FORM -->
-  <div id="form-forgot" style="display:none">
-    <p style="font-size:.85rem;color:var(--text2);margin-bottom:1.25rem;line-height:1.6">Enter your email address and we'll generate a secure reset link for you. Copy it and open it in your browser.</p>
-    <div class="field">
-      <label class="label">Email address</label>
-      <input class="input" type="email" id="f-email" placeholder="you@example.com" autocomplete="email">
-    </div>
-    <button class="submit" id="f-btn" onclick="doForgot()">Generate Reset Link</button>
-    <!-- Reset link display -->
-    <div id="reset-link-box" style="display:none;margin-top:1rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.875rem">
-      <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.07em">Your reset link (expires in 1 hour)</div>
-      <div id="reset-link-txt" style="font-size:.78rem;color:var(--green-glow);word-break:break-all;margin-bottom:.625rem;font-family:monospace"></div>
-      <button onclick="copyResetLink()" style="padding:.35rem .75rem;background:var(--green);border:1px solid var(--green-border);color:#fff;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='var(--green-h)'" onmouseout="this.style.background='var(--green)'">Copy link</button>
-    </div>
-  </div>
-
-  <!-- REGISTER FORM -->
   <div id="form-register" style="display:none">
     <div class="field">
       <label class="label">Your name</label>
@@ -126,8 +116,37 @@ body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-h
   </div>
 </div>
 
+<!-- Reset Password Modal -->
+<div class="modal-wrap" id="reset-modal" onclick="if(event.target===this)closeResetModal()">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">Reset Password</div>
+      <button class="modal-close" onclick="closeResetModal()">✕</button>
+    </div>
+
+    <div id="rp-step1">
+      <div class="modal-msg">Enter your email and we will send a verification code.</div>
+      <div class="field">
+        <label class="label">Email</label>
+        <input class="input" type="email" id="rp-email" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <button class="submit" id="rp-send" onclick="sendResetCode()">Send Code</button>
+    </div>
+
+    <div id="rp-step2" class="hidden">
+      <div class="modal-msg">Enter the verification code and choose your new password.</div>
+      <div class="field"><label class="label">Verification Code</label><input class="input" id="rp-code" maxlength="6" placeholder="6-digit code"></div>
+      <div class="field"><label class="label">New Password</label><input class="input" type="password" id="rp-new" autocomplete="new-password" placeholder="Min 8 characters"></div>
+      <div class="field"><label class="label">Confirm Password</label><input class="input" type="password" id="rp-cnf" autocomplete="new-password" placeholder="Repeat password"></div>
+      <button class="submit" id="rp-reset" onclick="submitResetPassword()">Reset Password</button>
+    </div>
+
+    <div class="err" id="rp-err" style="margin-top:.75rem;margin-bottom:0"></div>
+    <div class="ok-msg" id="rp-ok" style="margin-top:.75rem;margin-bottom:0"></div>
+  </div>
+</div>
+
 <script>
-// Theme
 function toggleTheme(){
   const h=document.documentElement,d=h.dataset.theme==='dark';
   h.dataset.theme=d?'light':'dark';
@@ -137,7 +156,6 @@ function toggleTheme(){
 const saved=localStorage.getItem('ugdrive_theme');
 if(saved){document.documentElement.dataset.theme=saved;document.getElementById('tbtn').textContent=saved==='dark'?'☀️':'🌙';}
 
-// Tab switch
 function switchTab(t){
   const isLogin=t==='login';
   document.getElementById('tab-login').classList.toggle('active',isLogin);
@@ -150,21 +168,18 @@ function switchTab(t){
   clearMsg();
 }
 
-// Check URL param
 const params=new URLSearchParams(location.search);
 if(params.get('tab')==='register') switchTab('register');
-else if(params.get('tab')==='forgot') switchTab('forgot');
 else switchTab('login');
 
 function showErr(msg){const e=document.getElementById('err');e.textContent=msg;e.classList.add('show');document.getElementById('ok').classList.remove('show')}
 function showOk(msg){const e=document.getElementById('ok');e.textContent=msg;e.classList.add('show');document.getElementById('err').classList.remove('show')}
 function clearMsg(){document.getElementById('err').classList.remove('show');document.getElementById('ok').classList.remove('show')}
-
 function togglePw(id,el){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';el.textContent=i.type==='password'?'👁':'🙈'}
 
 function checkStrength(pwd){
   const sf=document.getElementById('sf'),sh=document.getElementById('sh');
-  let score=0,label='Too short';
+  let score=0;
   if(pwd.length>=8)score++;
   if(pwd.length>=12)score++;
   if(/[0-9]/.test(pwd))score++;
@@ -209,42 +224,56 @@ async function doRegister(){
   btn.disabled=false;btn.textContent='Create account';
 }
 
-async function doForgot(){
-  const email=document.getElementById('f-email').value.trim();
-  if(!email){showErr('Please enter your email');return}
-  const btn=document.getElementById('f-btn');
-  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Generating link…';
+function resetMsg(msg,ok=false){
+  const e=document.getElementById('rp-err'),o=document.getElementById('rp-ok');
+  if(ok){o.textContent=msg;o.classList.add('show');e.classList.remove('show')}else{e.textContent=msg;e.classList.add('show');o.classList.remove('show')}
+}
+function clearResetMsg(){document.getElementById('rp-err').classList.remove('show');document.getElementById('rp-ok').classList.remove('show')}
+function openResetModal(){document.getElementById('reset-modal').classList.add('open');clearResetMsg();document.getElementById('rp-step1').classList.remove('hidden');document.getElementById('rp-step2').classList.add('hidden')}
+function closeResetModal(){document.getElementById('reset-modal').classList.remove('open')}
+
+async function sendResetCode(){
+  const email=document.getElementById('rp-email').value.trim();
+  if(!email){resetMsg('Please enter your email.');return}
+  const btn=document.getElementById('rp-send');btn.disabled=true;btn.innerHTML='<span class="spin"></span>Sending…';
   try{
-    const r=await fetch('/api/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
-    const d=await r.json().catch(()=>({}));
-    if(r.ok && d.reset_url){
-      document.getElementById('reset-link-box').style.display='block';
-      document.getElementById('reset-link-txt').textContent=d.reset_url;
-      showOk('Reset link generated. Copy it and open it in your browser.');
-    } else {
-      showErr(d.detail||'Could not generate reset link.');
-    }
-  }catch{showErr('Connection error. Try again.')}
-  btn.disabled=false;btn.textContent='Generate Reset Link';
+    const r=await fetch('/auth/request-password-reset',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json().catch(()=>({detail:'Request failed'}));
+    if(!r.ok){resetMsg(d.detail||'Could not send verification code.');return}
+    resetMsg('If that email exists, a code has been sent.',true);
+    document.getElementById('rp-step1').classList.add('hidden');
+    document.getElementById('rp-step2').classList.remove('hidden');
+  }catch{resetMsg('Connection error. Try again.');}
+  btn.disabled=false;btn.textContent='Send Code';
 }
 
-function copyResetLink(){
-  const txt=document.getElementById('reset-link-txt').textContent;
-  navigator.clipboard.writeText(txt).then(()=>{
-    showOk('Link copied to clipboard!');
-  }).catch(()=>{
-    // fallback
-    const ta=document.createElement('textarea');
-    ta.value=txt;document.body.appendChild(ta);ta.select();
-    document.execCommand('copy');document.body.removeChild(ta);
-    showOk('Link copied!');
-  });
+async function submitResetPassword(){
+  const email=document.getElementById('rp-email').value.trim();
+  const code=document.getElementById('rp-code').value.trim();
+  const np=document.getElementById('rp-new').value;
+  const cf=document.getElementById('rp-cnf').value;
+  if(!code||!np||!cf){resetMsg('Please fill all fields.');return}
+  if(np.length<8){resetMsg('Password must be at least 8 characters.');return}
+  if(np!==cf){resetMsg('Passwords do not match.');return}
+  const btn=document.getElementById('rp-reset');btn.disabled=true;btn.innerHTML='<span class="spin"></span>Resetting…';
+  try{
+    const r=await fetch('/auth/reset-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,code,new_password:np})});
+    const d=await r.json().catch(()=>({detail:'Request failed'}));
+    if(!r.ok){resetMsg(d.detail||'Invalid or expired verification code.');return}
+    resetMsg('Password updated. Redirecting to sign in…',true);
+    setTimeout(()=>{closeResetModal();switchTab('login');showOk('Password reset successful. Please sign in with your new password.');},900);
+  }catch{resetMsg('Connection error. Try again.');}
+  btn.disabled=false;btn.textContent='Reset Password';
 }
 
-// Enter key
 document.addEventListener('keydown',e=>{
   if(e.key!=='Enter')return;
-  if(document.getElementById('form-login').style.display!=='none')doLogin();
+  if(document.getElementById('reset-modal').classList.contains('open')){
+    if(!document.getElementById('rp-step1').classList.contains('hidden')) sendResetCode();
+    else submitResetPassword();
+    return;
+  }
+  if(document.getElementById('form-login').style.display!=='none') doLogin();
   else doRegister();
 });
 </script>
