@@ -2,11 +2,12 @@
 UG Drive — Unlimited Google Drive
 Persistent tokens via Supabase · JWT auth · FastAPI
 """
-import os, pickle, io, base64, secrets, time
+import os, pickle, io, base64, secrets, time, smtplib
 from secrets import token_urlsafe
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
 
 import bcrypt
 import jwt as PyJWT
@@ -83,6 +84,58 @@ def check_pw(password: str, hashed: str) -> bool:
     except Exception:
         return False
 
+def generate_reset_code() -> str:
+    return f"{int.from_bytes(os.urandom(3), 'big') % 1_000_000:06d}"
+
+def send_reset_code_email(to_email: str, code: str):
+    smtp_host = os.getenv("SMTP_HOST", "")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_pass = os.getenv("SMTP_PASS", "")
+    smtp_from = os.getenv("SMTP_FROM", smtp_user or "no-reply@ugdrive.local")
+
+    if not smtp_host:
+        print(f"[UGDRIVE][RESET_CODE][DEV_FALLBACK] {to_email} code={code}")
+        return
+
+    msg = EmailMessage()
+    msg["Subject"] = "UG Drive password reset code"
+    msg["From"] = smtp_from
+    msg["To"] = to_email
+    msg.set_content(
+        f"Your UG Drive verification code is: {code}\n\n"
+        "This code expires in 10 minutes."
+    )
+
+    try:
+        print(f"[UGDRIVE][SMTP] Connecting to SMTP server... host={smtp_host} port={smtp_port}")
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as smtp:
+            print("[UGDRIVE][SMTP] Starting TLS...")
+            smtp.starttls()
+            print("[UGDRIVE][SMTP] TLS started successfully")
+            if smtp_user:
+                print(f"[UGDRIVE][SMTP] Logging into SMTP... user={smtp_user}")
+                smtp.login(smtp_user, smtp_pass)
+                print("[UGDRIVE][SMTP] SMTP login successful")
+            else:
+                print("[UGDRIVE][SMTP] SMTP_USER is empty, skipping login")
+            print(f"[UGDRIVE][SMTP] Sending reset email... to={to_email}")
+            smtp.send_message(msg)
+            print(f"[UGDRIVE][SMTP] Reset email sent successfully to={to_email}")
+    except Exception as e:
+        print(f"[UGDRIVE][SMTP] SMTP ERROR: {e}")
+        raise
+
+def store_reset_code(sb: Client, user_id: str, code: str):
+    token = f"CODE:{code}:{token_urlsafe(8)}"
+    expires = datetime.now(timezone.utc) + timedelta(minutes=10)
+    sb.table("reset_tokens").insert({
+        "user_id": user_id,
+        "token": token,
+        "expires_at": expires.isoformat(),
+        "used": False,
+    }).execute()
+
 # ── Google helpers ─────────────────────────────────────────────────────────────
 def load_creds(token_b64: str) -> Credentials:
     return pickle.loads(base64.b64decode(token_b64))
@@ -157,6 +210,19 @@ async def dashboard(request: Request):
     if not get_user(request):
         return RedirectResponse("/login")
     return html("dashboard.html")
+
+
+@app.get("/profile", response_class=HTMLResponse)
+async def profile_page(request: Request):
+    if not get_user(request):
+        return RedirectResponse("/login")
+    return html("profile.html")
+
+@app.get("/settings", response_class=HTMLResponse)
+async def settings_page(request: Request):
+    if not get_user(request):
+        return RedirectResponse("/login")
+    return html("settings.html")
 
 @app.get("/api/ping")
 async def ping():
@@ -403,6 +469,7 @@ async def list_files(
     account_id: Optional[int] = None,
     trashed: bool = False,
     q: Optional[str] = None,
+    parent_gid: Optional[str] = None,
     limit: int = 500,
     offset: int = 0,
 ):
@@ -645,56 +712,99 @@ async def change_password(request: Request):
     sb.table("users").update({"password_hash": hash_pw(new_)}).eq("id", user["sub"]).execute()
     return {"ok": True}
 
-# ── Forgot password — generate reset token (no email, returns link directly) ──
+# ── Password reset (email + verification code) ────────────────────────────────
+@app.post("/auth/request-password-reset")
+@app.post("/api/auth/request-password-reset")
 @app.post("/api/auth/forgot-password")
-async def forgot_password(request: Request):
-    body  = await request.json()
+async def request_password_reset(request: Request):
+    body = await request.json()
     email = (body.get("email") or "").lower().strip()
     if not email:
         raise HTTPException(400, "Email required")
-    sb = get_sb()
-    r  = sb.table("users").select("id,email").eq("email", email).execute()
-    # Always return 200 (don't reveal if email exists), but only generate if found
-    if not r.data:
-        return {"ok": True, "reset_url": None,
-                "detail": "If that email exists, a reset link has been generated."}
-    user_id = r.data[0]["id"]
-    token   = token_urlsafe(32)
-    expires = datetime.now(timezone.utc) + timedelta(hours=1)
-    # Store token — upsert so re-requests replace the old token
-    sb.table("reset_tokens").insert({
-        "user_id":    user_id,
-        "token":      token,
-        "expires_at": expires.isoformat(),
-        "used":       False,
-    }).execute()
-    reset_url = f"{BASE_URL}/reset-password?token={token}"
-    return {"ok": True, "reset_url": reset_url}
 
-# ── Reset password (token-based) ───────────────────────────────────────────────
+    sb = get_sb()
+    r = sb.table("users").select("id,email").eq("email", email).execute()
+
+    # Always return generic success so caller cannot enumerate valid emails.
+    if r.data:
+        user_id = r.data[0]["id"]
+        code = generate_reset_code()
+        store_reset_code(sb, user_id, code)
+        try:
+            send_reset_code_email(email, code)
+        except Exception:
+            # Keep generic response to avoid leaking account existence.
+            pass
+
+    return {
+        "ok": True,
+        "detail": "If the email exists, a verification code has been sent."
+    }
+
+@app.post("/auth/reset-password")
 @app.post("/api/auth/reset-password")
 async def reset_password(request: Request):
-    body     = await request.json()
-    token    = (body.get("token") or "").strip()
-    password = body.get("password", "")
-    if not token:
-        raise HTTPException(400, "Reset token required")
-    if len(password) < 8:
-        raise HTTPException(400, "Password must be at least 8 characters")
+    body = await request.json()
     sb = get_sb()
-    r  = sb.table("reset_tokens").select("*").eq("token", token).execute()
-    if not r.data:
-        raise HTTPException(400, "Invalid or expired reset link")
-    rec = r.data[0]
-    if rec["used"]:
-        raise HTTPException(400, "This reset link has already been used")
-    expires = datetime.fromisoformat(rec["expires_at"].replace("Z", "+00:00"))
-    if datetime.now(timezone.utc) > expires:
-        raise HTTPException(400, "This reset link has expired. Please request a new one.")
-    # Update password
-    sb.table("users").update({"password_hash": hash_pw(password)}).eq("id", rec["user_id"]).execute()
-    # Mark token as used
-    sb.table("reset_tokens").update({"used": True}).eq("token", token).execute()
+
+    # Backward compatibility: old token-link flow
+    token = (body.get("token") or "").strip()
+    if token:
+        password = body.get("password", "")
+        if len(password) < 8:
+            raise HTTPException(400, "Password must be at least 8 characters")
+        r = sb.table("reset_tokens").select("*").eq("token", token).execute()
+        if not r.data:
+            raise HTTPException(400, "Invalid or expired reset request")
+        rec = r.data[0]
+        if rec["used"]:
+            raise HTTPException(400, "Invalid or expired reset request")
+        expires = datetime.fromisoformat(rec["expires_at"].replace("Z", "+00:00"))
+        if datetime.now(timezone.utc) > expires:
+            raise HTTPException(400, "Invalid or expired reset request")
+        sb.table("users").update({"password_hash": hash_pw(password)}).eq("id", rec["user_id"]).execute()
+        sb.table("reset_tokens").update({"used": True}).eq("token", token).execute()
+        return {"ok": True}
+
+    # New flow: email + code + new_password
+    email = (body.get("email") or "").lower().strip()
+    code = (body.get("code") or "").strip()
+    new_password = body.get("new_password") or body.get("password") or ""
+
+    if not email or not code:
+        raise HTTPException(400, "Email and code are required")
+    if len(new_password) < 8:
+        raise HTTPException(400, "Password must be at least 8 characters")
+
+    ur = sb.table("users").select("id").eq("email", email).execute()
+    if not ur.data:
+        raise HTTPException(400, "Invalid or expired reset request")
+    user_id = ur.data[0]["id"]
+
+    rr = sb.table("reset_tokens").select("*").eq("user_id", user_id).eq("used", False).execute()
+    matched = None
+    now = datetime.now(timezone.utc)
+    for rec in (rr.data or []):
+        tok = rec.get("token", "")
+        if not tok.startswith("CODE:"):
+            continue
+        parts = tok.split(":")
+        if len(parts) < 3:
+            continue
+        rec_code = parts[1]
+        if rec_code != code:
+            continue
+        exp = datetime.fromisoformat(rec["expires_at"].replace("Z", "+00:00"))
+        if now > exp:
+            continue
+        matched = rec
+        break
+
+    if not matched:
+        raise HTTPException(400, "Invalid or expired reset request")
+
+    sb.table("users").update({"password_hash": hash_pw(new_password)}).eq("id", user_id).execute()
+    sb.table("reset_tokens").update({"used": True}).eq("id", matched["id"]).execute()
     return {"ok": True}
 
 # ── Reset password page ────────────────────────────────────────────────────────
