@@ -7,7 +7,7 @@ from secrets import token_urlsafe
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta, timezone
-from urllib.request import Request, urlopen
+from urllib.request import Request as URLRequest, urlopen
 from urllib.error import HTTPError, URLError
 
 import bcrypt
@@ -107,7 +107,7 @@ def send_reset_code_email(to_email: str, code: str):
         print("[UGDRIVE][SMTP] Starting TLS... (handled by HTTPS)")
         print("[UGDRIVE][SMTP] Logging into SMTP... (Bearer API key)")
 
-        req = Request(
+        req = URLRequest(
             "https://api.resend.com/emails",
             data=json.dumps(payload).encode("utf-8"),
             headers={
@@ -121,7 +121,15 @@ def send_reset_code_email(to_email: str, code: str):
         with urlopen(req, timeout=20) as resp:
             body = resp.read().decode("utf-8", errors="replace")
             print(f"[UGDRIVE][SMTP] Reset email sent successfully to={to_email} status={resp.status} response={body}")
-    except (HTTPError, URLError, Exception) as e:
+    except HTTPError as e:
+        err_body = ""
+        try:
+            err_body = e.read().decode("utf-8", errors="replace")
+        except Exception:
+            err_body = "<no response body>"
+        print(f"[UGDRIVE][SMTP] SMTP ERROR: {e} status={getattr(e, 'code', '?')} body={err_body}")
+        raise
+    except (URLError, Exception) as e:
         print(f"[UGDRIVE][SMTP] SMTP ERROR: {e}")
         raise
 
