@@ -90,13 +90,14 @@ def generate_reset_code() -> str:
 
 def send_reset_code_email(to_email: str, code: str):
     resend_api_key = os.getenv("RESEND_API_KEY", "")
+    resend_from = os.getenv("RESEND_FROM", "onboarding@resend.dev")
 
     if not resend_api_key:
         print(f"[UGDRIVE][RESET_CODE][DEV_FALLBACK] {to_email} code={code}")
         return
 
     payload = {
-        "from": "UG Drive <onboarding@resend.dev>",
+        "from": resend_from,
         "to": [to_email],
         "subject": "UG Drive Password Reset Code",
         "text": f"Your password reset verification code is: {code}",
@@ -106,6 +107,7 @@ def send_reset_code_email(to_email: str, code: str):
         print("[UGDRIVE][SMTP] Connecting to SMTP server... (Resend HTTPS API)")
         print("[UGDRIVE][SMTP] Starting TLS... (handled by HTTPS)")
         print("[UGDRIVE][SMTP] Logging into SMTP... (Bearer API key)")
+        print(f"[UGDRIVE][SMTP] Using sender address: {resend_from}")
 
         req = URLRequest(
             "https://api.resend.com/emails",
@@ -128,6 +130,8 @@ def send_reset_code_email(to_email: str, code: str):
         except Exception:
             err_body = "<no response body>"
         print(f"[UGDRIVE][SMTP] SMTP ERROR: {e} status={getattr(e, 'code', '?')} body={err_body}")
+        if getattr(e, "code", None) == 403 and '"code":1010' in err_body.replace(' ', ''):
+            print("[UGDRIVE][SMTP] Resend rejected sender identity (code 1010). Set RESEND_FROM to a verified sender/domain in Resend, or use onboarding@resend.dev in test mode.")
         raise
     except (URLError, Exception) as e:
         print(f"[UGDRIVE][SMTP] SMTP ERROR: {e}")
