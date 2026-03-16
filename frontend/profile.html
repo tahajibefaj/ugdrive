@@ -53,6 +53,22 @@
         <h2>Connected Google Drive accounts</h2>
         <div id="accounts" class="accounts"><div class="muted">Loading accounts…</div></div>
       </section>
+
+      <section class="card">
+        <h2>Password reset verification</h2>
+        <div class="muted" style="margin-bottom:10px">Use email verification code to reset your password.</div>
+        <div class="row" style="display:block;border-bottom:0;padding:0">
+          <input class="input" id="rp-email" type="email" placeholder="Email" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text)">
+          <button onclick="sendCode()" id="send-btn" style="margin-top:8px;padding:9px 12px;border-radius:8px;border:1px solid var(--green);background:var(--green);color:#fff;cursor:pointer">Send Code</button>
+        </div>
+        <div id="rp-step2" style="display:none;margin-top:10px">
+          <input class="input" id="rp-code" placeholder="Verification code" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);margin-top:6px">
+          <input class="input" id="rp-new" type="password" placeholder="New password" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);margin-top:6px">
+          <input class="input" id="rp-cnf" type="password" placeholder="Confirm password" style="width:100%;padding:10px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);margin-top:6px">
+          <button onclick="resetPwd()" id="reset-btn" style="margin-top:8px;padding:9px 12px;border-radius:8px;border:1px solid var(--green);background:var(--green);color:#fff;cursor:pointer">Reset Password</button>
+        </div>
+        <div id="rp-msg" class="muted" style="margin-top:8px"></div>
+      </section>
     </div>
   </div>
 
@@ -90,6 +106,44 @@
       }catch{
         box.innerHTML = '<div class="err">Failed to load connected accounts.</div>';
       }
+    }
+
+    async function sendCode(){
+      const email = document.getElementById('rp-email').value.trim();
+      const msg = document.getElementById('rp-msg');
+      if(!email){ msg.textContent = 'Enter your email.'; msg.className='err'; return; }
+      const btn = document.getElementById('send-btn'); btn.disabled = true; btn.textContent='Sending…';
+      try{
+        const r = await fetch('/auth/request-password-reset', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email})});
+        if(!r.ok){ throw new Error('Request failed'); }
+        document.getElementById('rp-step2').style.display='block';
+        msg.textContent = 'If this email exists, a code has been sent.'; msg.className='muted';
+      }catch{
+        msg.textContent = 'Could not send code.'; msg.className='err';
+      }
+      btn.disabled = false; btn.textContent='Send Code';
+    }
+
+    async function resetPwd(){
+      const email = document.getElementById('rp-email').value.trim();
+      const code = document.getElementById('rp-code').value.trim();
+      const np = document.getElementById('rp-new').value;
+      const cf = document.getElementById('rp-cnf').value;
+      const msg = document.getElementById('rp-msg');
+      if(!code || !np || !cf){ msg.textContent='Fill all fields.'; msg.className='err'; return; }
+      if(np.length < 8){ msg.textContent='Password must be at least 8 characters.'; msg.className='err'; return; }
+      if(np !== cf){ msg.textContent='Passwords do not match.'; msg.className='err'; return; }
+      const btn = document.getElementById('reset-btn'); btn.disabled = true; btn.textContent='Resetting…';
+      try{
+        const r = await fetch('/auth/reset-password', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({email, code, new_password:np})});
+        const d = await r.json().catch(()=>({detail:'Request failed'}));
+        if(!r.ok){ msg.textContent=d.detail || 'Invalid or expired code.'; msg.className='err'; return; }
+        msg.textContent='Password updated. Redirecting to login…'; msg.className='muted';
+        setTimeout(()=>location.href='/login', 900);
+      }catch{
+        msg.textContent='Could not reset password.'; msg.className='err';
+      }
+      btn.disabled = false; btn.textContent='Reset Password';
     }
 
     loadProfile();
