@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UG Drive</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+
+/* ── VARIABLES ── */
+:root[data-theme="dark"] {
+  --bg: #0d1117; --bg2: #161b22; --bg3: #21262d; --bg4: #2d333b;
+  --border: #30363d; --border2: #444c56;
+  --text: #e6edf3; --t2: #8b949e; --t3: #6e7681;
+  --green: #2ea043; --green-h: #3fb950; --glow: #56d364;
+  --gbg: rgba(46,160,67,.1); --gbd: #196127;
+  --red: #f85149; --rbg: rgba(248,81,73,.1);
+  --amber: #d29922;
+  --blue: #58a6ff; --shadow: 0 8px 32px rgba(0,0,0,.55);
+}
+:root[data-theme="light"] {
+  --bg: #f6f8fa; --bg2: #ffffff; --bg3: #f1f3f5; --bg4: #e9ecef;
+  --border: #d0d7de; --border2: #adb5bd;
+  --text: #1c2128; --t2: #57606a; --t3: #8c959f;
+  --green: #1a7f37; --green-h: #2ea043; --glow: #1a7f37;
+  --gbg: rgba(26,127,55,.08); --gbd: #4ac26b;
+  --red: #d1242f; --rbg: rgba(209,36,47,.08);
+  --amber: #9a6700;
+  --blue: #0969da; --shadow: 0 4px 16px rgba(0,0,0,.12);
+}
+
+/* ── RESET ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'IBM Plex Sans', -apple-system, sans-serif;
+  font-size: 13.5px;
+  background: var(--bg);
+  color: var(--text);
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── WAKE SCREEN ── */
+#wake {
+  position: fixed; inset: 0; background: var(--bg); z-index: 9999;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1.25rem;
+}
+#wake.gone { display: none; }
+.wake-logo { display: flex; align-items: center; gap: .7rem; font-size: 1.15rem; font-weight: 700; }
+#wake-msg { font-size: .85rem; color: var(--t2); }
+
+/* ── SPINNERS ── */
+.spin {
+  width: 26px; height: 26px;
+  border: 2.5px solid var(--border); border-top-color: var(--green);
+  border-radius: 50%; animation: rot .7s linear infinite;
+}
+.spin-sm {
+  display: inline-block; width: 13px; height: 13px;
+  border: 2px solid var(--border); border-top-color: var(--green);
+  border-radius: 50%; animation: rot .6s linear infinite; vertical-align: middle;
+}
+@keyframes rot { to { transform: rotate(360deg); } }
+
+/* ── LOGO SQUARE ── */
+.logo-sq {
+  width: 32px; height: 32px;
+  background: var(--green); border-radius: 9px;
+  display: grid; place-items: center;
+  color: #fff; font-weight: 800; font-size: .78rem; flex-shrink: 0;
+}
+
+/* ── TOPBAR ── */
+.topbar {
+  height: 52px; background: var(--bg2); border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .75rem; padding: 0 1rem; flex-shrink: 0; z-index: 50;
+}
+.tb-logo {
+  display: flex; align-items: center; gap: .5rem;
+  text-decoration: none; color: var(--text); font-weight: 700; font-size: .95rem;
+  flex-shrink: 0; width: 210px;
+}
+.tb-search { flex: 1; max-width: 500px; position: relative; }
+.tb-search input {
+  width: 100%; padding: .475rem .75rem .475rem 2.15rem;
+  border: 1.5px solid var(--border); border-radius: 9px;
+  background: var(--bg3); color: var(--text);
+  font-family: inherit; font-size: .875rem; outline: none;
+  transition: border .15s, background .15s;
+}
+.tb-search input:focus { border-color: var(--green); background: var(--bg2); }
+.tb-search input::placeholder { color: var(--t3); }
+.srch-ic {
+  position: absolute; left: .65rem; top: 50%; transform: translateY(-50%);
+  color: var(--t3); pointer-events: none; display: flex;
+}
+.tb-end { margin-left: auto; display: flex; align-items: center; gap: .375rem; }
+
+/* ── ICON BUTTON ── */
+.ib {
+  width: 33px; height: 33px;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  background: none; color: var(--t2); cursor: pointer;
+  display: grid; place-items: center; transition: all .15s; flex-shrink: 0;
+}
+.ib:hover { border-color: var(--green); color: var(--green); background: var(--gbg); }
+
+/* ── AVATAR ── */
+.av {
+  width: 31px; height: 31px; border-radius: 50%;
+  background: var(--green); border: 2px solid var(--gbd);
+  color: #fff; font-weight: 700; font-size: .78rem;
+  cursor: pointer; display: grid; place-items: center; overflow: hidden; flex-shrink: 0;
+}
+.av img { width: 100%; height: 100%; object-fit: cover; display: none; }
+
+
+/* ── PROFILE MENU ── */
+.prof-menu {
+  position: fixed; top: 56px; right: .75rem;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 11px; box-shadow: var(--shadow);
+  z-index: 600; min-width: 230px; overflow: hidden; display: none;
+}
+.prof-menu.open { display: block; }
+.prof-hd {
+  padding: .875rem 1rem .75rem;
+  border-bottom: 1px solid var(--border);
+}
+.prof-name { font-size: .9rem; font-weight: 700; color: var(--text); }
+.prof-email { font-size: .75rem; color: var(--t2); margin-top: .15rem; word-break: break-all; }
+.prof-mi {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .55rem 1rem; font-size: .875rem; color: var(--t2);
+  cursor: pointer; transition: background .1s;
+}
+.prof-mi svg { width: 14px; height: 14px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.prof-mi:hover { background: var(--bg3); color: var(--text); }
+.prof-mi.red { color: var(--red); }
+.prof-mi.red:hover { background: var(--rbg); }
+.prof-sep { height: 1px; background: var(--border); margin: .25rem 0; }
+
+/* ── SVG ICON UTIL ── */
+.ic { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.ic svg, .ib svg, .sbi svg, .sba-ico svg, .bb svg, .pab svg, .ci svg, .new-btn svg,
+.dd-item svg, .sb-conn svg, .sb-out svg, .bc-btn svg, .sort-btn svg, .vt svg, .more-btn svg, .prev-cls svg {
+  stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+}
+
+/* ── APP LAYOUT ── */
+.app { display: flex; flex: 1; overflow: hidden; }
+
+/* ═══════════════════════════ SIDEBAR ═══════════════════════════ */
+.sb {
+  width: 210px; background: var(--bg2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; overflow-y: auto; overflow-x: hidden;
+}
+
+/* New button */
+.new-wrap { padding: .75rem .75rem .5rem; position: relative; }
+.new-btn {
+  width: 100%; display: flex; align-items: center; gap: .55rem;
+  padding: .525rem 1rem; background: var(--green); border: 1px solid var(--gbd);
+  color: #fff; border-radius: 8px; font-size: .875rem; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: background .15s;
+}
+.new-btn:hover { background: var(--green-h); }
+.new-btn svg { width: 15px; height: 15px; }
+.new-dd {
+  position: absolute; top: calc(100% - .3rem); left: .75rem; right: .75rem;
+  background: var(--bg2); border: 1.5px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow); z-index: 200; overflow: hidden; display: none;
+}
+.new-dd.open { display: block; }
+.dd-item {
+  display: flex; align-items: center; gap: .65rem;
+  padding: .7rem 1rem; cursor: pointer; font-size: .875rem;
+  font-weight: 500; color: var(--t2); transition: background .1s;
+}
+.dd-item svg { width: 15px; height: 15px; }
+.dd-item:hover { background: var(--bg3); color: var(--text); }
+
+/* Nav sections */
+.sb-section { padding: .5rem .625rem; }
+.sb-section + .sb-section { border-top: 1px solid var(--border); margin-top: .25rem; padding-top: .625rem; }
+.sb-lbl {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .09em; color: var(--t3); padding: 0 .5rem .3rem;
+}
+.sbi {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .5rem .625rem; border-radius: 7px;
+  background: none; border: none; width: 100%; text-align: left;
+  font-family: inherit; font-size: .875rem; font-weight: 500; color: var(--t2);
+  cursor: pointer; transition: all .1s; margin-bottom: 1px;
+}
+.sbi svg { width: 15px; height: 15px; }
+.sbi:hover { background: var(--bg3); color: var(--text); }
+.sbi.on { background: var(--gbg); color: var(--glow); font-weight: 600; }
+.sbi.on svg { stroke: var(--glow); }
+.sbi-badge {
+  margin-left: auto; background: var(--bg3); color: var(--t3);
+  font-size: .67rem; padding: .1rem .35rem; border-radius: 999px; font-weight: 700;
+}
+.sbi.on .sbi-badge { background: var(--gbg); color: var(--glow); }
+
+/* Drive accounts in sidebar */
+.sba {
+  display: flex; align-items: center; gap: .55rem;
+  padding: .425rem .625rem; border-radius: 7px;
+  cursor: pointer; transition: background .1s; margin-bottom: 1px;
+}
+.sba:hover { background: var(--bg3); }
+.sba.active { background: var(--gbg); }
+.sba-g {
+  width: 20px; height: 20px; border-radius: 4px;
+  background: #fce8e6; color: #c62828;
+  font-size: .6rem; font-weight: 800; display: grid; place-items: center; flex-shrink: 0;
+}
+.sba-info { flex: 1; min-width: 0; }
+.sba-name { font-size: .8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.sba-used { font-size: .68rem; color: var(--t3); }
+.sba-bar { height: 2.5px; background: var(--border); border-radius: 2px; margin-top: 2px; overflow: hidden; }
+.sba-fill { height: 100%; background: var(--green); border-radius: 2px; }
+.sb-conn {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .45rem .625rem; border-radius: 7px;
+  border: 1.5px dashed var(--border); background: none;
+  width: 100%; font-family: inherit; font-size: .8rem;
+  font-weight: 500; color: var(--t3); cursor: pointer; transition: all .15s; margin-top: .2rem;
+}
+.sb-conn svg { width: 13px; height: 13px; }
+.sb-conn:hover { border-color: var(--green); color: var(--green); background: var(--gbg); }
+
+/* Sidebar footer */
+.sb-foot { margin-top: auto; padding: .75rem; border-top: 1px solid var(--border); }
+.sb-tot-bar { height: 3.5px; background: var(--border); border-radius: 2px; margin-bottom: .35rem; overflow: hidden; }
+.sb-tot-fill { height: 100%; background: var(--green); border-radius: 2px; transition: width .4s; }
+.sb-tot-txt { font-size: .72rem; color: var(--t3); }
+.sb-out {
+  display: flex; align-items: center; gap: .5rem;
+  padding: .35rem .5rem; border-radius: 6px;
+  background: none; border: none; cursor: pointer;
+  font-family: inherit; font-size: .78rem; color: var(--t3);
+  margin-top: .6rem; width: 100%;
+}
+.sb-out svg { width: 13px; height: 13px; }
+.sb-out:hover { color: var(--red); background: var(--rbg); }
+
+/* ═══════════════════════════ MAIN ═══════════════════════════ */
+.main { flex: 1; display: flex; flex-direction: column; overflow: hidden; min-width: 0; }
+
+/* Toolbar */
+.toolbar {
+  background: var(--bg2); border-bottom: 1px solid var(--border);
+  flex-shrink: 0; padding: .6rem 1rem; display: flex; flex-direction: column; gap: .45rem;
+}
+.tb-row1 { display: flex; align-items: center; gap: .5rem; }
+.tb-row2 { display: flex; align-items: center; gap: .35rem; flex-wrap: wrap; }
+
+/* Breadcrumb */
+.bc { display: flex; align-items: center; gap: .2rem; flex: 1; min-width: 0; overflow: hidden; }
+.bc-btn {
+  display: flex; align-items: center; gap: .25rem;
+  font-size: .875rem; font-weight: 600; color: var(--t2);
+  cursor: pointer; padding: .2rem .3rem; border-radius: 5px; white-space: nowrap;
+  background: none; border: none; font-family: inherit; transition: all .12s;
+}
+.bc-btn svg { width: 14px; height: 14px; }
+.bc-btn:hover { color: var(--green); background: var(--gbg); }
+.bc-btn.cur { color: var(--text); cursor: default; font-weight: 700; }
+.bc-btn.cur:hover { background: none; color: var(--text); }
+.bc-sep { color: var(--t3); font-size: .8rem; user-select: none; padding: 0 .1rem; }
+
+/* Filter pills */
+.pill {
+  padding: .26rem .65rem; border-radius: 999px;
+  font-size: .775rem; font-weight: 600;
+  border: 1.5px solid var(--border); background: none; color: var(--t2);
+  cursor: pointer; font-family: inherit; transition: all .12s; white-space: nowrap;
+}
+.pill:hover { border-color: var(--border2); color: var(--text); }
+.pill.on { background: var(--gbg); border-color: var(--green); color: var(--glow); }
+
+/* Right controls */
+.tb-ctrl { display: flex; align-items: center; gap: .4rem; margin-left: auto; }
+
+/* Sort dropdown */
+.sort-wrap { position: relative; }
+.sort-btn {
+  display: flex; align-items: center; gap: .35rem;
+  padding: .32rem .65rem; border: 1.5px solid var(--border); border-radius: 8px;
+  background: none; color: var(--t2); font-family: inherit;
+  font-size: .8rem; font-weight: 500; cursor: pointer; transition: all .12s; white-space: nowrap;
+}
+.sort-btn:hover { border-color: var(--border2); color: var(--text); }
+.sort-btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+.sort-dd {
+  position: absolute; top: calc(100% + 5px); right: 0;
+  background: var(--bg2); border: 1.5px solid var(--border); border-radius: 10px;
+  box-shadow: var(--shadow); z-index: 300; padding: .35rem; min-width: 175px; display: none;
+}
+.sort-dd.open { display: block; }
+.sdi {
+  display: flex; align-items: center; padding: .45rem .7rem;
+  border-radius: 6px; cursor: pointer; font-size: .84rem; color: var(--t2); transition: background .1s;
+}
+.sdi:hover { background: var(--bg3); color: var(--text); }
+.sdi.on { color: var(--glow); background: var(--gbg); font-weight: 600; }
+
+/* View toggle */
+.vtog { display: flex; border: 1.5px solid var(--border); border-radius: 8px; overflow: hidden; }
+.vt {
+  padding: .32rem .45rem; background: none; border: none;
+  cursor: pointer; color: var(--t3); display: grid; place-items: center; transition: all .1s;
+}
+.vt:hover { background: var(--bg3); color: var(--text); }
+.vt.on { background: var(--gbg); color: var(--glow); }
+.vt svg { width: 14px; height: 14px; }
+.vt + .vt { border-left: 1.5px solid var(--border); }
+
+/* ═══════════════════════════ FILE AREA ═══════════════════════════ */
+.file-area { flex: 1; overflow-y: auto; overflow-x: hidden; position: relative; }
+.drop-overlay {
+  position: absolute; inset: .5rem;
+  border: 2px dashed var(--green); border-radius: 12px;
+  background: rgba(46,160,67,.06); z-index: 80;
+  display: none; align-items: center; justify-content: center;
+  flex-direction: column; gap: .75rem;
+  color: var(--green); font-size: .95rem; font-weight: 600; pointer-events: none;
+}
+.drop-overlay.on { display: flex; }
+.drop-overlay svg { width: 46px; height: 46px; stroke: var(--green); fill: none; stroke-width: 1.5; }
+
+/* ── LIST VIEW ── */
+.ft { width: 100%; }
+.ft-hd {
+  display: flex; align-items: center;
+  padding: .35rem 1rem; border-bottom: 1.5px solid var(--border);
+  position: sticky; top: 0; background: var(--bg2); z-index: 10;
+}
+.hd-chk  { width: 34px; flex-shrink: 0; display: flex; align-items: center; }
+.hd-ico  { width: 30px; flex-shrink: 0; }
+.hd-name { flex: 1; }
+.hd-acct { width: 145px; }
+.hd-mod  { width: 105px; }
+.hd-sz   { width: 72px; text-align: right; }
+.hd-act  { width: 32px; }
+.ft-hd div {
+  font-size: .68rem; font-weight: 700;
+  text-transform: uppercase; letter-spacing: .08em; color: var(--t3);
+}
+.hd-chk input { width: 14px; height: 14px; accent-color: var(--green); cursor: pointer; }
+
+.fr {
+  display: flex; align-items: center;
+  padding: .3rem 1rem; border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background .08s; position: relative;
+}
+.fr:hover { background: var(--bg2); }
+.fr.sel { background: var(--gbg) !important; }
+.fr-chk { width: 34px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.fr-chk input {
+  width: 14px; height: 14px; accent-color: var(--green); cursor: pointer;
+  opacity: 0; transition: opacity .1s;
+}
+.fr:hover .fr-chk input, .fr.sel .fr-chk input { opacity: 1; }
+.fr-ico  { width: 30px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+.fr-ico svg { width: 18px; height: 18px; }
+.fr-info { flex: 1; min-width: 0; }
+.fr-name {
+  font-size: .875rem; font-weight: 500;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  transition: color .1s;
+}
+.fr:hover .fr-name { color: var(--green); }
+.fr.folder .fr-name { font-weight: 600; }
+.fr-sub  { font-size: .71rem; color: var(--t3); margin-top: .5px; }
+.fr-acct { width: 145px; font-size: .775rem; color: var(--t3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fr-mod  { width: 105px; font-size: .775rem; color: var(--t3); }
+.fr-sz   { width: 72px; font-size: .775rem; color: var(--t3); text-align: right; }
+.fr-act  { width: 32px; display: flex; align-items: center; justify-content: center; }
+.more-btn {
+  width: 24px; height: 24px; border-radius: 6px; background: none; border: none;
+  color: var(--t3); cursor: pointer; display: grid; place-items: center;
+  opacity: 0; transition: all .1s;
+}
+.fr:hover .more-btn, .fr.sel .more-btn { opacity: 1; }
+.more-btn:hover { background: var(--bg3); color: var(--text); }
+.more-btn svg { width: 14px; height: 14px; }
+
+/* ── GRID VIEW ── */
+.fgrid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+  gap: .65rem; padding: .875rem;
+}
+.gc {
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 11px; overflow: hidden; cursor: pointer; transition: all .15s; position: relative;
+}
+.gc:hover { border-color: var(--green); box-shadow: 0 4px 16px rgba(46,160,67,.1); }
+.gc.sel { border-color: var(--green); background: var(--gbg); }
+.gc-thumb {
+  height: 95px; background: var(--bg3);
+  display: flex; align-items: center; justify-content: center;
+  overflow: hidden; position: relative;
+}
+.gc-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.gc-thumb svg { width: 38px; height: 38px; }
+.gc-chk {
+  position: absolute; top: .4rem; left: .4rem;
+  opacity: 0; transition: opacity .1s; background: var(--bg2);
+  border-radius: 4px; padding: 1px; line-height: 0;
+}
+.gc:hover .gc-chk, .gc.sel .gc-chk { opacity: 1; }
+.gc-chk input { width: 13px; height: 13px; accent-color: var(--green); cursor: pointer; }
+.gc-info { padding: .55rem .65rem; }
+.gc-name { font-size: .82rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-bottom: .2rem; }
+.gc-meta { font-size: .71rem; color: var(--t3); }
+
+/* ── EMPTY STATE ── */
+.empty {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; height: 65%; gap: .875rem;
+  text-align: center; padding: 2rem;
+}
+.empty svg { stroke: var(--border2); fill: none; stroke-width: 1.5; width: 52px; height: 52px; }
+.empty p { font-size: .9rem; font-weight: 600; color: var(--t2); }
+.empty small { font-size: .8rem; color: var(--t3); }
+
+/* ═══════════════════════════ PREVIEW PANEL ═══════════════════════════ */
+.prev {
+  flex-basis: 0; overflow: hidden; min-width: 0;
+  background: var(--bg2); border-left: 1.5px solid var(--border);
+  display: flex; flex-direction: column; flex-shrink: 0; transition: flex-basis .25s ease;
+}
+.prev.open { flex-basis: 285px; }
+.prev-hd {
+  padding: .7rem .875rem; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: .5rem; flex-shrink: 0;
+}
+.prev-hd-ic { flex-shrink: 0; line-height: 0; }
+.prev-hd-ic svg { width: 17px; height: 17px; }
+.prev-ttl {
+  flex: 1; font-size: .875rem; font-weight: 600;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0;
+}
+.prev-cls { background: none; border: none; cursor: pointer; color: var(--t3); padding: .2rem; border-radius: 5px; }
+.prev-cls:hover { color: var(--text); }
+.prev-cls svg { width: 14px; height: 14px; display: block; }
+.prev-media {
+  background: var(--bg3); height: 165px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center; overflow: hidden;
+}
+.prev-media img { width: 100%; height: 100%; object-fit: contain; }
+.prev-media svg { width: 48px; height: 48px; stroke: var(--border2); fill: none; stroke-width: 1.5; }
+.prev-acts {
+  padding: .6rem .875rem; display: flex; gap: .4rem;
+  border-bottom: 1px solid var(--border); flex-shrink: 0; flex-wrap: wrap;
+}
+.pab {
+  flex: 1; min-width: 74px;
+  display: flex; align-items: center; justify-content: center; gap: .3rem;
+  padding: .38rem .4rem; border: 1.5px solid var(--border); border-radius: 7px;
+  background: none; color: var(--t2); font-family: inherit;
+  font-size: .75rem; font-weight: 500; cursor: pointer; transition: all .12s;
+}
+.pab:hover { border-color: var(--green); color: var(--green); background: var(--gbg); }
+.pab svg { width: 12px; height: 12px; flex-shrink: 0; }
+.prev-meta { flex: 1; padding: .75rem .875rem; overflow-y: auto; }
+.pmr { display: flex; align-items: flex-start; gap: .5rem; margin-bottom: .65rem; }
+.pmk {
+  font-size: .68rem; font-weight: 700; text-transform: uppercase;
+  letter-spacing: .07em; color: var(--t3); width: 62px; flex-shrink: 0; padding-top: .1rem;
+}
+.pmv { font-size: .8rem; color: var(--t2); flex: 1; word-break: break-all; min-width: 0; }
+.pmv.hi { color: var(--text); font-weight: 500; }
+
+/* ═══════════════════════════ BULK BAR ═══════════════════════════ */
+.bulk-bar {
+  position: fixed; bottom: 1.25rem; left: 50%;
+  transform: translateX(-50%) translateY(90px);
+  background: var(--bg2); border: 1.5px solid var(--border2);
+  border-radius: 14px; box-shadow: var(--shadow);
+  padding: .55rem .875rem;
+  display: flex; align-items: center; gap: .5rem;
+  z-index: 400; transition: transform .3s cubic-bezier(.34,1.56,.64,1); white-space: nowrap;
+}
+.bulk-bar.vis { transform: translateX(-50%) translateY(0); }
+.bulk-cnt {
+  font-size: .875rem; font-weight: 700; color: var(--glow);
+  padding-right: .7rem; border-right: 1px solid var(--border); flex-shrink: 0;
+}
+.bb {
+  display: flex; align-items: center; gap: .35rem;
+  padding: .375rem .65rem; border: 1.5px solid var(--border); border-radius: 8px;
+  background: none; color: var(--t2); font-family: inherit;
+  font-size: .8rem; font-weight: 500; cursor: pointer; transition: all .12s;
+}
+.bb:hover { border-color: var(--border2); color: var(--text); background: var(--bg3); }
+.bb.red:hover { border-color: var(--red); color: var(--red); background: var(--rbg); }
+.bb svg { width: 13px; height: 13px; flex-shrink: 0; }
+.bulk-x {
+  width: 24px; height: 24px; border-radius: 50%; background: var(--bg3);
+  border: none; cursor: pointer; color: var(--t2); display: grid; place-items: center; margin-left: .1rem;
+}
+.bulk-x:hover { background: var(--border); }
+.bulk-x svg { width: 12px; height: 12px; stroke: currentColor; fill: none; stroke-width: 2.5; }
+
+/* ═══════════════════════════ CONTEXT MENU ═══════════════════════════ */
+.ctx-menu {
+  position: fixed; background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 10px; box-shadow: var(--shadow);
+  z-index: 600; padding: .35rem; min-width: 170px; display: none;
+}
+.ctx-menu.open { display: block; }
+.ci {
+  display: flex; align-items: center; gap: .55rem;
+  padding: .45rem .7rem; border-radius: 6px; cursor: pointer;
+  font-size: .84rem; color: var(--t2); transition: background .08s; white-space: nowrap;
+}
+.ci:hover { background: var(--bg3); color: var(--text); }
+.ci.red { color: var(--red); }
+.ci.red:hover { background: var(--rbg); color: var(--red); }
+.ci svg { width: 13px; height: 13px; flex-shrink: 0; }
+.csep { height: 1px; background: var(--border); margin: .3rem 0; }
+
+/* ═══════════════════════════ MODALS ═══════════════════════════ */
+.mover {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  z-index: 700; display: none; align-items: center; justify-content: center; padding: 1rem;
+}
+.mover.open { display: flex; }
+.modal {
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 13px; box-shadow: var(--shadow);
+  width: 100%; max-width: 400px; padding: 1.375rem;
+}
+.m-title { font-size: .975rem; font-weight: 700; margin-bottom: 1.1rem; }
+.mf { margin-bottom: .875rem; }
+.mf label { display: block; font-size: .78rem; font-weight: 600; color: var(--t2); margin-bottom: .3rem; }
+.mf input, .mf select {
+  width: 100%; padding: .525rem .7rem;
+  border: 1.5px solid var(--border); border-radius: 8px;
+  background: var(--bg3); color: var(--text);
+  font-family: inherit; font-size: .875rem; outline: none; transition: border .15s;
+}
+.mf input:focus, .mf select:focus { border-color: var(--green); background: var(--bg2); }
+.mf select option { background: var(--bg2); }
+.m-acts { display: flex; gap: .5rem; justify-content: flex-end; margin-top: 1.1rem; }
+.m-cancel {
+  padding: .475rem .9rem; border: 1.5px solid var(--border); border-radius: 8px;
+  background: none; color: var(--t2); font-family: inherit; font-size: .875rem; font-weight: 600; cursor: pointer;
+}
+.m-cancel:hover { border-color: var(--border2); color: var(--text); }
+.m-ok {
+  padding: .475rem 1.1rem; border: 1px solid var(--gbd); border-radius: 8px;
+  background: var(--green); color: #fff;
+  font-family: inherit; font-size: .875rem; font-weight: 600; cursor: pointer; transition: background .12s;
+}
+.m-ok:hover { background: var(--green-h); }
+.m-ok:disabled { opacity: .5; cursor: not-allowed; }
+
+
+/* ── CHANGE PASSWORD MODAL ── */
+#m-chpw { position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:700;display:none;align-items:center;justify-content:center;padding:1rem; }
+#m-chpw.open { display:flex; }
+/* ═══════════════════════════ TOASTS ═══════════════════════════ */
+#toasts {
+  position: fixed; bottom: 4.5rem; right: 1rem;
+  display: flex; flex-direction: column; gap: .4rem; z-index: 800;
+}
+.toast {
+  padding: .55rem .9rem; border-radius: 9px;
+  font-size: .84rem; font-weight: 500;
+  border: 1px solid var(--border); background: var(--bg2);
+  box-shadow: var(--shadow); animation: tIn .2s ease;
+  display: flex; align-items: center; gap: .45rem; max-width: 275px;
+}
+.toast.ok { border-color: var(--green); color: var(--glow); }
+.toast.err { border-color: var(--red); color: var(--red); }
+.toast svg { width: 13px; height: 13px; flex-shrink: 0; stroke: currentColor; fill: none; stroke-width: 2.5; }
+@keyframes tIn { from { opacity: 0; transform: translateX(14px); } to { opacity: 1; transform: none; } }
+
+/* Upload progress */
+.up-prog {
+  position: fixed; bottom: 4.5rem; left: 1rem;
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: 11px; padding: .75rem .9rem; width: 270px;
+  box-shadow: var(--shadow); z-index: 700; display: none;
+}
+.up-prog.vis { display: block; }
+.up-hd { display: flex; align-items: center; justify-content: space-between; margin-bottom: .5rem; }
+.up-hd span { font-size: .84rem; font-weight: 600; }
+.up-bar { height: 4px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.up-fill { height: 100%; background: var(--green); border-radius: 3px; width: 0; transition: width .3s; }
+.up-fn { font-size: .72rem; color: var(--t3); margin-top: .3rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border2); }
+
+#file-in { display: none; }
+
+</style>
+</head>
+<body>
+
+<!-- ── WAKE SCREEN ── -->
+<div id="wake">
+  <div class="wake-logo"><div class="logo-sq">UG</div>UG Drive</div>
+  <div class="spin"></div>
+  <p id="wake-msg">Starting up…</p>
+</div>
+
+<!-- ── TOPBAR ── -->
+<div class="topbar">
+  <a href="/" class="tb-logo">
+    <div class="logo-sq">UG</div>UG Drive
+  </a>
+  <div class="tb-search">
+    <span class="srch-ic">
+      <svg width="15" height="15" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+    </span>
+    <input id="srch-inp" type="text" placeholder="Search files…" autocomplete="off" oninput="onSearch(this.value)">
+  </div>
+  <div class="tb-end">
+    <button class="ib" title="Sync all" onclick="doSync()">
+      <svg width="15" height="15" viewBox="0 0 24 24"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+    </button>
+    <button class="ib" id="theme-btn" title="Toggle theme" onclick="toggleTheme()">
+      <svg id="ico-moon" width="15" height="15" viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+      <svg id="ico-sun" width="15" height="15" viewBox="0 0 24 24" style="display:none"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+    </button>
+    <div class="av" id="av" onclick="toggleProfileMenu()" title="Account & Settings"><img id="av-img" alt=""><span id="av-init">?</span></div>
+  </div>
+</div>
+
+<!-- ── APP ── -->
+<div class="app">
+
+  <!-- SIDEBAR -->
+  <div class="sb">
+    <!-- New button -->
+    <div class="new-wrap" id="new-wrap">
+      <button class="new-btn" onclick="toggleNew()">
+        <svg width="15" height="15" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        New
+      </button>
+      <div class="new-dd" id="new-dd">
+        <div class="dd-item" onclick="openUpload()">
+          <svg width="15" height="15" viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+          Upload Files
+        </div>
+        <div class="dd-item" onclick="openMkdir()">
+          <svg width="15" height="15" viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/></svg>
+          New Folder
+        </div>
+      </div>
+    </div>
+
+    <!-- Nav -->
+    <div class="sb-section">
+      <button class="sbi on" id="sbi-files" onclick="setSection('files')">
+        <svg width="15" height="15" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        My Drive
+      </button>
+      <button class="sbi" id="sbi-recent" onclick="setSection('recent')">
+        <svg width="15" height="15" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        Recent
+      </button>
+      <button class="sbi" id="sbi-trash" onclick="setSection('trash')">
+        <svg width="15" height="15" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+        Trash
+        <span class="sbi-badge" id="trash-cnt">0</span>
+      </button>
+    </div>
+
+    <!-- Drive accounts -->
+    <div class="sb-section">
+      <div class="sb-lbl">Drive Accounts</div>
+      <div id="sb-accts"></div>
+      <button class="sb-conn" onclick="addAccount()">
+        <svg width="13" height="13" viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        Connect Account
+      </button>
+    </div>
+
+    <!-- Footer -->
+    <div class="sb-foot">
+      <div class="sb-tot-bar"><div class="sb-tot-fill" id="sb-tot-fill" style="width:0%"></div></div>
+      <div class="sb-tot-txt" id="sb-tot-txt">Loading…</div>
+      <button class="sb-out" onclick="signOut()">
+        <svg width="13" height="13" viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        Sign out
+      </button>
+    </div>
+  </div><!-- /sb -->
+
+  <!-- MAIN -->
+  <div class="main">
+
+    <!-- Toolbar -->
+    <div class="toolbar">
+      <div class="tb-row1">
+        <!-- Breadcrumb -->
+        <div class="bc" id="bc"></div>
+        <!-- Controls -->
+        <div class="tb-ctrl">
+          <!-- Sort -->
+          <div class="sort-wrap">
+            <button class="sort-btn" onclick="toggleSortDD()">
+              <svg width="12" height="12" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              <span id="sort-lbl">Name A–Z</span>
+              <svg width="12" height="12" viewBox="0 0 24 24"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="sort-dd" id="sort-dd">
+              <div class="sdi on" data-s="name_asc"  onclick="setSort('name_asc')">Name A–Z</div>
+              <div class="sdi"    data-s="name_desc" onclick="setSort('name_desc')">Name Z–A</div>
+              <div class="sdi"    data-s="date_desc" onclick="setSort('date_desc')">Newest first</div>
+              <div class="sdi"    data-s="date_asc"  onclick="setSort('date_asc')">Oldest first</div>
+              <div class="sdi"    data-s="size_desc" onclick="setSort('size_desc')">Largest first</div>
+              <div class="sdi"    data-s="size_asc"  onclick="setSort('size_asc')">Smallest first</div>
+            </div>
+          </div>
+          <!-- View toggle -->
+          <div class="vtog">
+            <button class="vt on" id="vt-list" title="List view" onclick="setView('list')">
+              <svg width="14" height="14" viewBox="0 0 24 24"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            </button>
+            <button class="vt" id="vt-grid" title="Grid view" onclick="setView('grid')">
+              <svg width="14" height="14" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+      <div class="tb-row2">
+        <!-- Filter pills -->
+        <button class="pill on" data-f="all"      onclick="setFilter('all')">All</button>
+        <button class="pill"    data-f="folder"   onclick="setFilter('folder')">Folders</button>
+        <button class="pill"    data-f="image"    onclick="setFilter('image')">Images</button>
+        <button class="pill"    data-f="video"    onclick="setFilter('video')">Videos</button>
+        <button class="pill"    data-f="document" onclick="setFilter('document')">Documents</button>
+        <button class="pill"    data-f="pdf"      onclick="setFilter('pdf')">PDFs</button>
+        <button class="pill"    data-f="audio"    onclick="setFilter('audio')">Audio</button>
+      </div>
+    </div>
+
+    <!-- File area -->
+    <div class="file-area" id="file-area">
+      <div class="drop-overlay" id="drop-overlay">
+        <svg viewBox="0 0 24 24"><polyline points="16 16 12 12 8 16"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.39 18.39A5 5 0 0 0 18 9h-1.26A8 8 0 1 0 3 16.3"/></svg>
+        Drop files here to upload
+      </div>
+      <div id="fl"></div>
+    </div>
+
+  </div><!-- /main -->
+
+  <!-- PREVIEW PANEL -->
+  <div class="prev" id="prev">
+    <div class="prev-hd">
+      <div class="prev-hd-ic" id="p-ic"></div>
+      <div class="prev-ttl" id="p-ttl">—</div>
+      <button class="prev-cls" onclick="closePreview()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="prev-media" id="p-media">
+      <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+    </div>
+    <div class="prev-acts">
+      <button class="pab" onclick="pDl()">
+        <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download
+      </button>
+      <button class="pab" onclick="pOpen()">
+        <svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open
+      </button>
+      <button class="pab" onclick="pRename()">
+        <svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Rename
+      </button>
+    </div>
+    <div class="prev-meta" id="p-meta"></div>
+  </div>
+
+</div><!-- /app -->
+
+<!-- ── BULK BAR ── -->
+<div class="bulk-bar" id="bulk-bar">
+  <span class="bulk-cnt" id="bulk-cnt">0 selected</span>
+  <button class="bb" onclick="bulkDownload()">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download
+  </button>
+  <button class="bb" onclick="bulkMove()">
+    <svg viewBox="0 0 24 24"><polyline points="5 9 2 12 5 15"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/></svg>Move
+  </button>
+  <button class="bb red" id="bb-trash" onclick="bulkTrash()">
+    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Trash
+  </button>
+  <button class="bb red" id="bb-del" onclick="bulkDelete()" style="display:none">
+    <svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete forever
+  </button>
+  <button class="bb" id="bb-rst" onclick="bulkRestore()" style="display:none">
+    <svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.95"/></svg>Restore
+  </button>
+  <button class="bulk-x" onclick="deselectAll()">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </button>
+</div>
+
+<!-- ── CONTEXT MENU ── -->
+<div class="ctx-menu" id="ctx">
+  <div class="ci" id="ci-open"  onclick="ctxOpen()"><svg viewBox="0 0 24 24"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>Open in Drive</div>
+  <div class="ci" onclick="ctxDownload()"><svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Download</div>
+  <div class="csep"></div>
+  <div class="ci" onclick="ctxRename()"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>Rename</div>
+  <div class="ci" onclick="ctxMove()"><svg viewBox="0 0 24 24"><polyline points="5 9 2 12 5 15"/><polyline points="19 9 22 12 19 15"/><line x1="2" y1="12" x2="22" y2="12"/></svg>Move to…</div>
+  <div class="csep"></div>
+  <div class="ci red" id="ci-trash"  onclick="ctxTrash()"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Move to trash</div>
+  <div class="ci red" id="ci-del"   onclick="ctxDelete()"  style="display:none"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>Delete forever</div>
+  <div class="ci" id="ci-rst"   onclick="ctxRestore()" style="display:none"><svg viewBox="0 0 24 24"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.95"/></svg>Restore</div>
+</div>
+
+<!-- ── MODALS ── -->
+<!-- Rename -->
+<div class="mover" id="m-rename">
+  <div class="modal">
+    <div class="m-title">Rename</div>
+    <div class="mf"><label>New name</label><input id="rename-inp" type="text" placeholder="File name"></div>
+    <div class="m-acts">
+      <button class="m-cancel" onclick="closeM('m-rename')">Cancel</button>
+      <button class="m-ok" onclick="submitRename()">Rename</button>
+    </div>
+  </div>
+</div>
+
+<!-- Move -->
+<div class="mover" id="m-move">
+  <div class="modal">
+    <div class="m-title">Move to folder</div>
+    <div class="mf"><label>Destination</label><select id="move-sel"><option value="">— My Drive (root) —</option></select></div>
+    <div class="m-acts">
+      <button class="m-cancel" onclick="closeM('m-move')">Cancel</button>
+      <button class="m-ok" onclick="submitMove()">Move here</button>
+    </div>
+  </div>
+</div>
+
+<!-- New Folder -->
+<div class="mover" id="m-mkdir">
+  <div class="modal">
+    <div class="m-title">New Folder</div>
+    <div class="mf"><label>Name</label><input id="mkdir-name" type="text" value="Untitled folder"></div>
+    <div class="mf"><label>Drive account</label><select id="mkdir-acct"></select></div>
+    <div class="m-acts">
+      <button class="m-cancel" onclick="closeM('m-mkdir')">Cancel</button>
+      <button class="m-ok" id="mkdir-ok" onclick="submitMkdir()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── TOASTS + UPLOAD PROGRESS ── -->
+
+<!-- Change Password Modal -->
+<div id="m-chpw">
+  <div class="modal">
+    <div class="m-title">Change Password</div>
+    <div class="mf"><label>Current password</label><input id="cp-cur" type="password" class="mf input" placeholder="Current password" style="width:100%;padding:.525rem .7rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:inherit;font-size:.875rem;outline:none;transition:border .15s"></div>
+    <div class="mf"><label>New password</label><input id="cp-new" type="password" class="mf input" placeholder="Min 8 characters" style="width:100%;padding:.525rem .7rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:inherit;font-size:.875rem;outline:none;transition:border .15s"></div>
+    <div class="mf"><label>Confirm new password</label><input id="cp-cnf" type="password" class="mf input" placeholder="Repeat new password" style="width:100%;padding:.525rem .7rem;border:1.5px solid var(--border);border-radius:8px;background:var(--bg3);color:var(--text);font-family:inherit;font-size:.875rem;outline:none;transition:border .15s"></div>
+    <div id="cp-err" style="display:none;color:var(--red);font-size:.8rem;margin-top:-.3rem;margin-bottom:.5rem"></div>
+    <div class="m-acts">
+      <button class="m-cancel" onclick="document.getElementById('m-chpw').classList.remove('open')">Cancel</button>
+      <button class="m-ok" id="cp-ok" onclick="submitChangePassword()">Change Password</button>
+    </div>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<div class="up-prog" id="up-prog">
+  <div class="up-hd"><span id="up-lbl">Uploading…</span><div class="spin-sm"></div></div>
+  <div class="up-bar"><div class="up-fill" id="up-fill"></div></div>
+  <div class="up-fn" id="up-fn"></div>
+</div>
+
+<!-- Hidden file input -->
+<input type="file" id="file-in" multiple onchange="onFilePick(this.files)">
+
+
+<!-- ── PROFILE MENU ── -->
+<div class="prof-menu" id="prof-menu">
+  <div class="prof-hd">
+    <div class="prof-name" id="prof-name">—</div>
+    <div class="prof-email" id="prof-email"></div>
+  </div>
+  <div class="prof-mi" onclick="addAccount(); closeProfileMenu()">
+    <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+    Connect Drive Account
+  </div>
+  <div class="prof-mi" onclick="closeProfileMenu(); openChangePassword()">
+    <svg viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+    Change Password
+  </div>
+  <div class="prof-sep"></div>
+  <div class="prof-mi red" onclick="closeProfileMenu(); signOut()">
+    <svg viewBox="0 0 24 24"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sign out
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ─── STATE ───────────────────────────────────────────────────────────────────
+let allFiles    = [];
+let accounts    = [];
+let sel         = new Set();
+let section     = 'files';    // files | recent | trash
+let filterType  = 'all';
+let sortBy      = 'name_asc';
+let viewMode    = 'list';
+let folderStack = [];          // [{gid, name}, …]
+let filterAcct  = null;
+let searchQ     = '';
+let previewFile = null;
+let ctxFile     = null;
+let renameGid   = null;
+let moveGids    = [];
+
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+const $  = id => document.getElementById(id);
+const sl = ms => new Promise(r => setTimeout(r, ms));
+
+function esc(s) {
+  const d = document.createElement('div');
+  d.textContent = String(s || '');
+  return d.innerHTML;
+}
+
+function hb(b) {
+  if (!b || b === 0) return '0 B';
+  const u = ['B','KB','MB','GB','TB'];
+  let i = 0, v = Number(b);
+  while (v >= 1024 && i < 4) { v /= 1024; i++; }
+  return v.toFixed(1) + ' ' + u[i];
+}
+
+function hd(s) {
+  if (!s) return '–';
+  return new Date(s).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+}
+
+function pct(u, t) { return t ? Math.min(100, Math.round(u / t * 100)) : 0; }
+
+// ─── MIME ICONS ───────────────────────────────────────────────────────────────
+function mimeIcon(mime, size = 18) {
+  const a = `width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"`;
+  if (!mime)
+    return `<svg ${a} stroke="var(--t2)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+  if (mime === 'application/vnd.google-apps.folder')
+    return `<svg ${a} stroke="var(--blue)"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>`;
+  if (mime.startsWith('image/'))
+    return `<svg ${a} stroke="var(--green)"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>`;
+  if (mime.startsWith('video/'))
+    return `<svg ${a} stroke="#a78bfa"><polygon points="23 7 16 12 23 17 23 7"/><rect x="1" y="5" width="15" height="14" rx="2"/></svg>`;
+  if (mime.startsWith('audio/'))
+    return `<svg ${a} stroke="var(--amber)"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg>`;
+  if (mime === 'application/pdf')
+    return `<svg ${a} stroke="var(--red)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+  if (mime.includes('zip') || mime.includes('rar') || mime.includes('tar'))
+    return `<svg ${a} stroke="var(--amber)"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/></svg>`;
+  if (mime.includes('spreadsheet') || mime.includes('excel'))
+    return `<svg ${a} stroke="#16a34a"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/></svg>`;
+  if (mime.includes('presentation') || mime.includes('powerpoint'))
+    return `<svg ${a} stroke="#ea580c"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`;
+  // generic doc
+  return `<svg ${a} stroke="var(--t2)"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>`;
+}
+
+// ─── TOAST ────────────────────────────────────────────────────────────────────
+function toast(msg, type = '') {
+  const el  = document.createElement('div');
+  el.className = 'toast' + (type ? ' ' + type : '');
+  const icon = type === 'ok'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><polyline points="20 6 9 17 4 12"/></svg>'
+    : type === 'err'
+    ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" width="13" height="13"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>'
+    : '';
+  el.innerHTML = icon + esc(msg);
+  $('toasts').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ─── API ──────────────────────────────────────────────────────────────────────
+async function api(path, opts = {}) {
+  const r = await fetch('/api' + path, opts);
+  if (r.status === 401) { location.href = '/login'; throw new Error('Not authenticated'); }
+  if (!r.ok) {
+    const e = await r.json().catch(() => ({ detail: 'Request failed' }));
+    throw new Error(e.detail || 'Request failed');
+  }
+  return r.json();
+}
+
+// ─── THEME ────────────────────────────────────────────────────────────────────
+function toggleTheme() {
+  const html = document.documentElement;
+  const isDark = html.dataset.theme === 'dark';
+  html.dataset.theme = isDark ? 'light' : 'dark';
+  $('ico-moon').style.display = isDark ? 'none' : '';
+  $('ico-sun').style.display  = isDark ? '' : 'none';
+  localStorage.setItem('ug_theme', html.dataset.theme);
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+(async function init() {
+  // Restore theme
+  const savedTheme = localStorage.getItem('ug_theme');
+  if (savedTheme) {
+    document.documentElement.dataset.theme = savedTheme;
+    $('ico-moon').style.display = savedTheme === 'light' ? 'none' : '';
+    $('ico-sun').style.display  = savedTheme === 'light' ? '' : 'none';
+  }
+  // Restore view preference
+  const savedView = localStorage.getItem('ug_view');
+  if (savedView) setView(savedView, false);
+
+  // Wait for server
+  let tries = 0;
+  while (tries < 20) {
+    try {
+      const r = await fetch('/api/ping', { signal: AbortSignal.timeout(6000) });
+      if (r.ok) break;
+    } catch (_) {}
+    tries++;
+    $('wake-msg').textContent = `Starting up… (${tries * 5}s)`;
+    await sl(5000);
+  }
+
+  // Verify auth
+  try {
+    const meRes = await fetch('/api/auth/me');
+    if (!meRes.ok) { location.href = '/login'; return; }
+    const me = await meRes.json();
+    $('av-init').textContent = (me.name || me.email || '?')[0].toUpperCase();
+    if (me.avatar) {
+      const img = $('av-img');
+      img.src = me.avatar;
+      img.onload = () => { img.style.display = ''; $('av-init').style.display = 'none'; };
+    }
+  } catch (_) { location.href = '/login'; return; }
+
+  $('wake').classList.add('gone');
+
+  // Show OAuth error if redirected from Google with an error
+  const _params = new URLSearchParams(window.location.search);
+  const _oauthErr = _params.get('oauth_error');
+  if (_oauthErr === 'not_test_user') {
+    setTimeout(() => toast(
+      'Access denied — add this Google account as a Test User in Google Cloud Console first, then try again.',
+      'err'), 500);
+  } else if (_oauthErr) {
+    setTimeout(() => toast('Google sign-in failed: ' + _oauthErr, 'err'), 500);
+  }
+  if (_oauthErr) window.history.replaceState({}, '', '/dashboard');
+
+  await loadAccounts();
+  await loadFiles();
+  loadStats();
+})();
+
+// ─── LOAD ─────────────────────────────────────────────────────────────────────
+async function loadAccounts() {
+  try {
+    accounts = await api('/accounts');
+    renderSbAccounts();
+    populateAccountSelects();
+  } catch (e) {
+    if (e.message !== 'Not authenticated') toast('Failed to load accounts: ' + e.message, 'err');
+  }
+}
+
+async function loadFiles() {
+  const p = new URLSearchParams();
+  p.set('trashed', section === 'trash' ? 'true' : 'false');
+  p.set('limit', '1000');
+  if (filterAcct) p.set('account_id', filterAcct);
+  if (folderStack.length) p.set('parent_gid', folderStack[folderStack.length - 1].gid);
+  try {
+    allFiles = await api('/files?' + p.toString());
+    sel.clear();
+    render();
+    renderBc();
+    updateBulkBar();
+  } catch (e) {
+    if (e.message !== 'Not authenticated') toast('Failed to load files: ' + e.message, 'err');
+  }
+}
+
+async function loadStats() {
+  try {
+    const s = await api('/stats');
+    $('sb-tot-fill').style.width = pct(s.used_bytes, s.total_bytes) + '%';
+    $('sb-tot-txt').textContent  = `${s.used_human || '0 B'} of ${s.total_human || '0 B'} used`;
+    $('trash-cnt').textContent   = s.trashed || 0;
+  } catch (_) {}
+}
+
+// ─── SIDEBAR ACCOUNTS ─────────────────────────────────────────────────────────
+function renderSbAccounts() {
+  const el = $('sb-accts');
+  if (!accounts.length) {
+    el.innerHTML = '<div style="padding:.3rem .5rem;font-size:.78rem;color:var(--t3)">No accounts connected</div>';
+    return;
+  }
+  el.innerHTML = accounts.map(a => {
+    const p      = pct(a.used_bytes, a.total_bytes);
+    const active = filterAcct == a.id ? ' active' : '';
+    return `<div class="sba${active}" onclick="filtByAcct(${a.id})" title="${esc(a.email)}">
+      <div class="sba-g">G</div>
+      <div class="sba-info">
+        <div class="sba-name">${esc((a.name || a.email || '').split('@')[0])}</div>
+        <div class="sba-used">${hb(a.used_bytes)} / ${hb(a.total_bytes)}</div>
+        <div class="sba-bar"><div class="sba-fill" style="width:${p}%"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function filtByAcct(id) {
+  filterAcct = filterAcct == id ? null : id;
+  renderSbAccounts();
+  loadFiles();
+}
+
+function populateAccountSelects() {
+  $('mkdir-acct').innerHTML = accounts.length
+    ? accounts.map(a => `<option value="${a.id}">${esc(a.email)} — ${hb(a.total_bytes - a.used_bytes)} free</option>`).join('')
+    : '<option value="">No accounts connected</option>';
+}
+
+// ─── BREADCRUMB ───────────────────────────────────────────────────────────────
+function renderBc() {
+  const label = section === 'files' ? 'My Drive' : section === 'recent' ? 'Recent' : 'Trash';
+  let h = `<button class="bc-btn ${folderStack.length ? '' : 'cur'}" onclick="bcRoot()">
+    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+    ${esc(label)}
+  </button>`;
+  folderStack.forEach((f, i) => {
+    const isCur = i === folderStack.length - 1;
+    h += `<span class="bc-sep">/</span>
+    <button class="bc-btn ${isCur ? 'cur' : ''}" onclick="bcTo(${i})">${esc(f.name)}</button>`;
+  });
+  $('bc').innerHTML = h;
+}
+
+function bcRoot() { folderStack = []; loadFiles(); }
+function bcTo(idx) { folderStack = folderStack.slice(0, idx + 1); loadFiles(); }
+
+// ─── SECTION SWITCHING ────────────────────────────────────────────────────────
+function setSection(s) {
+  section = s;
+  folderStack = [];
+  filterType = 'all';
+  // update nav buttons
+  ['files','recent','trash'].forEach(id => {
+    const el = $('sbi-' + id);
+    if (el) el.classList.toggle('on', id === s);
+  });
+  // reset filter pills
+  document.querySelectorAll('.pill').forEach(p => p.classList.toggle('on', p.dataset.f === 'all'));
+  // toggle trash-specific bulk buttons
+  $('bb-trash').style.display = s === 'trash' ? 'none' : '';
+  $('bb-del').style.display   = s === 'trash' ? ''     : 'none';
+  $('bb-rst').style.display   = s === 'trash' ? ''     : 'none';
+  // toggle context menu items
+  $('ci-trash').style.display = s === 'trash' ? 'none' : '';
+  $('ci-del').style.display   = s === 'trash' ? ''     : 'none';
+  $('ci-rst').style.display   = s === 'trash' ? ''     : 'none';
+  deselectAll();
+  loadFiles();
+}
+
+// ─── FILTER PILLS ─────────────────────────────────────────────────────────────
+function setFilter(f) {
+  filterType = f;
+  document.querySelectorAll('.pill').forEach(p => p.classList.toggle('on', p.dataset.f === f));
+  deselectAll();
+  render();
+}
+
+// ─── SORT ─────────────────────────────────────────────────────────────────────
+const SORT_LABELS = {
+  name_asc: 'Name A–Z', name_desc: 'Name Z–A',
+  date_desc: 'Newest first', date_asc: 'Oldest first',
+  size_desc: 'Largest first', size_asc: 'Smallest first'
+};
+
+function setSort(s) {
+  sortBy = s;
+  $('sort-lbl').textContent = SORT_LABELS[s] || 'Sort';
+  document.querySelectorAll('.sdi').forEach(el => el.classList.toggle('on', el.dataset.s === s));
+  closeSortDD();
+  render();
+}
+
+function toggleSortDD() { $('sort-dd').classList.toggle('open'); }
+function closeSortDD()  { $('sort-dd').classList.remove('open'); }
+
+// ─── VIEW MODE ────────────────────────────────────────────────────────────────
+function setView(v, save = true) {
+  viewMode = v;
+  $('vt-list').classList.toggle('on', v === 'list');
+  $('vt-grid').classList.toggle('on', v === 'grid');
+  if (save) localStorage.setItem('ug_view', v);
+  render();
+}
+
+// ─── SEARCH ───────────────────────────────────────────────────────────────────
+function onSearch(q) { searchQ = q; render(); }
+
+// ─── SELECTION ────────────────────────────────────────────────────────────────
+function toggleSelectAll() {
+  const vis   = getVisible();
+  const allOn = vis.length > 0 && vis.every(f => sel.has(f.gid));
+  if (allOn) vis.forEach(f => sel.delete(f.gid));
+  else       vis.forEach(f => sel.add(f.gid));
+  updateSelUI();
+  updateBulkBar();
+}
+
+function deselectAll() {
+  sel.clear();
+  updateSelUI();
+  updateBulkBar();
+}
+
+function updateSelUI() {
+  document.querySelectorAll('.fr[data-gid]').forEach(row => {
+    const gid = row.dataset.gid;
+    row.classList.toggle('sel', sel.has(gid));
+    const cb = row.querySelector('.fr-chk input');
+    if (cb) cb.checked = sel.has(gid);
+  });
+  document.querySelectorAll('.gc[data-gid]').forEach(card => {
+    const gid = card.dataset.gid;
+    card.classList.toggle('sel', sel.has(gid));
+    const cb = card.querySelector('.gc-chk input');
+    if (cb) cb.checked = sel.has(gid);
+  });
+  const vis    = getVisible();
+  const allOn  = vis.length > 0 && vis.every(f => sel.has(f.gid));
+  const chkAll = $('chk-all');
+  if (chkAll) {
+    chkAll.checked       = allOn;
+    chkAll.indeterminate = sel.size > 0 && !allOn;
+  }
+
+}
+
+function updateBulkBar() {
+  if (sel.size > 0) {
+    $('bulk-bar').classList.add('vis');
+    $('bulk-cnt').textContent = sel.size + ' selected';
+  } else {
+    $('bulk-bar').classList.remove('vis');
+  }
+}
+
+function onChkAll(cb) {
+  const vis = getVisible();
+  if (cb.checked) vis.forEach(f => sel.add(f.gid));
+  else            vis.forEach(f => sel.delete(f.gid));
+  updateSelUI();
+  updateBulkBar();
+}
+
+function onChkRow(e, gid) {
+  e.stopPropagation();
+  if (e.target.checked) sel.add(gid);
+  else                  sel.delete(gid);
+  updateSelUI();
+  updateBulkBar();
+}
+
+// ─── ROW INTERACTIONS ─────────────────────────────────────────────────────────
+function onRowClick(e, gid) {
+  if (e.target.closest('.fr-chk') || e.target.closest('.gc-chk')) return;
+  if (e.target.closest('.more-btn')) return;
+  if (e.shiftKey || e.ctrlKey || e.metaKey) {
+    if (sel.has(gid)) sel.delete(gid);
+    else              sel.add(gid);
+    updateSelUI();
+    updateBulkBar();
+    return;
+  }
+  const f = allFiles.find(x => x.gid === gid);
+  if (f) openPreview(f);
+}
+
+function onDbl(gid) {
+  const f = allFiles.find(x => x.gid === gid);
+  if (!f) return;
+  if (f.mime === 'application/vnd.google-apps.folder') {
+    folderStack.push({ gid: f.gid, name: f.name });
+    deselectAll();
+    closePreview();
+    loadFiles();
+  } else if (f.view_link) {
+    window.open(f.view_link, '_blank');
+  }
+}
+
+function onMoreBtn(e, gid) {
+  e.stopPropagation();
+  const f = allFiles.find(x => x.gid === gid);
+  if (f) openCtx(e, f);
+}
+
+// ─── RENDER ───────────────────────────────────────────────────────────────────
+function getVisible() {
+  let f = [...allFiles];
+  if (searchQ) {
+    const q = searchQ.toLowerCase();
+    f = f.filter(x => (x.name || '').toLowerCase().includes(q));
+  }
+  if (filterType !== 'all') {
+    f = f.filter(x => {
+      const m = x.mime || '';
+      if (filterType === 'folder')   return m === 'application/vnd.google-apps.folder';
+      if (filterType === 'image')    return m.startsWith('image/');
+      if (filterType === 'video')    return m.startsWith('video/');
+      if (filterType === 'audio')    return m.startsWith('audio/');
+      if (filterType === 'pdf')      return m === 'application/pdf';
+      if (filterType === 'document') return m.includes('document') || m.includes('spreadsheet') || m.includes('presentation') || m.startsWith('text/') || m.includes('word') || m.includes('excel') || m.includes('powerpoint');
+      return true;
+    });
+  }
+  f.sort((a, b) => {
+    const af = a.mime === 'application/vnd.google-apps.folder';
+    const bf = b.mime === 'application/vnd.google-apps.folder';
+    if (af !== bf) return af ? -1 : 1;
+    if (sortBy === 'name_asc')  return (a.name || '').localeCompare(b.name || '');
+    if (sortBy === 'name_desc') return (b.name || '').localeCompare(a.name || '');
+    if (sortBy === 'size_asc')  return (a.size || 0) - (b.size || 0);
+    if (sortBy === 'size_desc') return (b.size || 0) - (a.size || 0);
+    if (sortBy === 'date_desc') return new Date(b.modified_at || 0) - new Date(a.modified_at || 0);
+    if (sortBy === 'date_asc')  return new Date(a.modified_at || 0) - new Date(b.modified_at || 0);
+    return 0;
+  });
+  return f;
+}
+
+function render() {
+  const vis = getVisible();
+  const el  = $('fl');
+  if (!vis.length) {
+    el.innerHTML = `<div class="empty">
+      <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+      <p>${section === 'trash' ? 'Trash is empty' : folderStack.length ? 'This folder is empty' : 'No files here'}</p>
+      <small>${section === 'trash' ? 'Deleted files appear here' : searchQ ? 'No results for &ldquo;' + esc(searchQ) + '&rdquo;' : 'Upload files or connect a Drive account'}</small>
+    </div>`;
+    return;
+  }
+  if (viewMode === 'grid') renderGrid(vis, el);
+  else                     renderList(vis, el);
+  updateSelUI();
+}
+
+function renderList(vis, el) {
+  let h = `<div class="ft">
+    <div class="ft-hd">
+      <div class="hd-chk"><input type="checkbox" id="chk-all" onchange="onChkAll(this)"></div>
+      <div class="hd-ico"></div>
+      <div class="hd-name">Name</div>
+      <div class="hd-acct">Account</div>
+      <div class="hd-mod">Modified</div>
+      <div class="hd-sz">Size</div>
+      <div class="hd-act"></div>
+    </div>`;
+  for (const f of vis) {
+    const isFolder = f.mime === 'application/vnd.google-apps.folder';
+    const isSel    = sel.has(f.gid);
+    const email    = f.email || '';
+    const g        = f.gid;
+    h += `<div class="fr${isFolder?' folder':''}${isSel?' sel':''}" data-gid="${esc(g)}"
+        onclick="onRowClick(event,'${esc(g)}')"
+        ondblclick="onDbl('${esc(g)}')"
+        oncontextmenu="onCtxEvent(event,'${esc(g)}')">
+      <div class="fr-chk"><input type="checkbox"${isSel?' checked':''} onclick="onChkRow(event,'${esc(g)}')"></div>
+      <div class="fr-ico">${mimeIcon(f.mime)}</div>
+      <div class="fr-info">
+        <div class="fr-name">${esc(f.name || '(unnamed)')}</div>
+        ${!isFolder ? `<div class="fr-sub">${esc(email.split('@')[0])}</div>` : ''}
+      </div>
+      <div class="fr-acct" title="${esc(email)}">${esc(email)}</div>
+      <div class="fr-mod">${hd(f.modified_at)}</div>
+      <div class="fr-sz">${isFolder ? '—' : hb(f.size)}</div>
+      <div class="fr-act">
+        <button class="more-btn" title="More options" onclick="onMoreBtn(event,'${esc(g)}')">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg>
+        </button>
+      </div>
+    </div>`;
+  }
+  h += '</div>';
+  el.innerHTML = h;
+}
+
+function renderGrid(vis, el) {
+  let h = '<div class="fgrid">';
+  for (const f of vis) {
+    const isImage  = f.mime && f.mime.startsWith('image/');
+    const isFolder = f.mime === 'application/vnd.google-apps.folder';
+    const isSel    = sel.has(f.gid);
+    const g        = f.gid;
+    const thumb    = isImage
+      ? `<img src="/api/files/${esc(g)}/thumbnail" alt="${esc(f.name)}"
+            onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+         <div style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${mimeIcon(f.mime, 38)}</div>`
+      : `<div style="display:flex;width:100%;height:100%;align-items:center;justify-content:center">${mimeIcon(f.mime, 38)}</div>`;
+    h += `<div class="gc${isSel?' sel':''}" data-gid="${esc(g)}"
+        onclick="onRowClick(event,'${esc(g)}')"
+        ondblclick="onDbl('${esc(g)}')"
+        oncontextmenu="onCtxEvent(event,'${esc(g)}')">
+      <div class="gc-thumb">${thumb}
+        <div class="gc-chk"><input type="checkbox"${isSel?' checked':''} onclick="onChkRow(event,'${esc(g)}')"></div>
+      </div>
+      <div class="gc-info">
+        <div class="gc-name" title="${esc(f.name)}">${esc(f.name || '(unnamed)')}</div>
+        <div class="gc-meta">${isFolder ? 'Folder' : hb(f.size)} · ${hd(f.modified_at)}</div>
+      </div>
+    </div>`;
+  }
+  h += '</div>';
+  el.innerHTML = h;
+}
+
+// ─── PREVIEW PANEL ────────────────────────────────────────────────────────────
+function openPreview(f) {
+  previewFile = f;
+  $('prev').classList.add('open');
+  const isImage = f.mime && f.mime.startsWith('image/');
+
+  $('p-ic').innerHTML    = mimeIcon(f.mime, 17);
+  $('p-ttl').textContent = f.name || '(unnamed)';
+
+  const media = $('p-media');
+  if (isImage) {
+    media.innerHTML = `<img src="/api/files/${esc(f.gid)}/thumbnail" alt="${esc(f.name)}"
+      onerror="this.parentElement.innerHTML='<div style=\\'display:flex;align-items:center;justify-content:center;width:100%;height:100%\\'>${mimeIcon(f.mime, 48).replace(/'/g, "\\'")}</div>'">`;
+  } else {
+    media.innerHTML = `<div style="display:flex;align-items:center;justify-content:center;width:100%;height:100%">${mimeIcon(f.mime, 48)}</div>`;
+  }
+
+  $('p-meta').innerHTML = `
+    <div class="pmr"><div class="pmk">Name</div><div class="pmv hi">${esc(f.name || '—')}</div></div>
+    <div class="pmr"><div class="pmk">Type</div><div class="pmv">${esc(f.mime || '—')}</div></div>
+    <div class="pmr"><div class="pmk">Size</div><div class="pmv">${f.mime === 'application/vnd.google-apps.folder' ? '—' : hb(f.size)}</div></div>
+    <div class="pmr"><div class="pmk">Modified</div><div class="pmv">${hd(f.modified_at)}</div></div>
+    <div class="pmr"><div class="pmk">Created</div><div class="pmv">${hd(f.created_at)}</div></div>
+    <div class="pmr"><div class="pmk">Account</div><div class="pmv">${esc(f.email || '—')}</div></div>`;
+}
+
+function closePreview() {
+  previewFile = null;
+  $('prev').classList.remove('open');
+}
+
+function pDl()     { if (previewFile) dlFile(previewFile.gid, previewFile.name); }
+function pOpen()   { if (previewFile && previewFile.view_link) window.open(previewFile.view_link, '_blank'); }
+function pRename() { if (previewFile) openRenameModal(previewFile.gid, previewFile.name); }
+
+// ─── DOWNLOAD ─────────────────────────────────────────────────────────────────
+function dlFile(gid, name) {
+  toast('Downloading ' + (name || 'file') + '…');
+  const a = document.createElement('a');
+  a.href = `/api/files/${gid}/download`;
+  a.download = name || 'download';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+}
+
+// ─── SYNC ─────────────────────────────────────────────────────────────────────
+async function doSync() {
+  toast('Syncing all drives…');
+  try {
+    const r    = await api('/sync', { method: 'POST' });
+    const ok   = r.synced.filter(s => s.ok).length;
+    const fail = r.synced.filter(s => !s.ok).length;
+    toast(`Synced ${ok} drive${ok !== 1 ? 's' : ''}${fail ? ` · ${fail} failed` : ''}`, 'ok');
+    await loadAccounts();
+    await loadFiles();
+    loadStats();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ─── RENAME ───────────────────────────────────────────────────────────────────
+function openRenameModal(gid, currentName) {
+  renameGid = gid;
+  $('rename-inp').value = currentName || '';
+  openM('m-rename');
+  setTimeout(() => $('rename-inp').select(), 60);
+}
+
+async function submitRename() {
+  const name = $('rename-inp').value.trim();
+  if (!name)    { toast('Name cannot be empty', 'err'); return; }
+  if (!renameGid) return;
+  try {
+    await api(`/files/${renameGid}/rename`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name })
+    });
+    // update locally so no full reload needed
+    const f = allFiles.find(x => x.gid === renameGid);
+    if (f) f.name = name;
+    if (previewFile && previewFile.gid === renameGid) { previewFile.name = name; openPreview(previewFile); }
+    toast('Renamed to ' + name, 'ok');
+    closeM('m-rename');
+    render();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ─── MOVE ─────────────────────────────────────────────────────────────────────
+async function openMoveModal(gids) {
+  moveGids = Array.isArray(gids) ? gids : [gids];
+  const folders = allFiles.filter(f => f.mime === 'application/vnd.google-apps.folder');
+  $('move-sel').innerHTML = '<option value="">— My Drive (root) —</option>' +
+    folders.map(f => `<option value="${esc(f.gid)}">${esc(f.name)}</option>`).join('');
+  openM('m-move');
+}
+
+async function submitMove() {
+  const destGid = $('move-sel').value;
+  if (!moveGids.length) return;
+  try {
+    await Promise.all(moveGids.map(gid =>
+      api(`/files/${esc(gid)}/move`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ parent_gid: destGid || null })
+      })
+    ));
+    toast(`Moved ${moveGids.length} item${moveGids.length > 1 ? 's' : ''}`, 'ok');
+    closeM('m-move');
+    deselectAll();
+    await loadFiles();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ─── SINGLE FILE ACTIONS ──────────────────────────────────────────────────────
+async function trashFile(gid) {
+  try {
+    await api(`/files/${gid}`, { method: 'DELETE' });
+    allFiles = allFiles.filter(f => f.gid !== gid);
+    sel.delete(gid);
+    if (previewFile && previewFile.gid === gid) closePreview();
+    render(); renderBc(); updateBulkBar();
+    toast('Moved to trash', 'ok');
+    loadStats();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function deleteFile(gid) {
+  if (!confirm('Permanently delete this file? This cannot be undone.')) return;
+  try {
+    await api(`/files/${gid}?permanent=true`, { method: 'DELETE' });
+    allFiles = allFiles.filter(f => f.gid !== gid);
+    sel.delete(gid);
+    if (previewFile && previewFile.gid === gid) closePreview();
+    render(); updateBulkBar();
+    toast('Permanently deleted');
+    loadStats();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function restoreFile(gid) {
+  try {
+    await api(`/files/${gid}/restore`, { method: 'POST' });
+    allFiles = allFiles.filter(f => f.gid !== gid);
+    sel.delete(gid);
+    if (previewFile && previewFile.gid === gid) closePreview();
+    render(); updateBulkBar();
+    toast('Restored', 'ok');
+    loadStats();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+// ─── BULK ACTIONS ─────────────────────────────────────────────────────────────
+async function bulkOp(action) {
+  const gids = [...sel];
+  if (!gids.length) return;
+  try {
+    const r   = await api('/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, gids })
+    });
+    const msg = { trash: 'Moved to trash', restore: 'Restored', delete: 'Permanently deleted' }[action];
+    toast(`${msg}: ${r.ok} item${r.ok !== 1 ? 's' : ''}${r.failed ? ' · ' + r.failed + ' failed' : ''}`, 'ok');
+    deselectAll();
+    await loadFiles();
+    loadStats();
+  } catch (e) { toast(e.message, 'err'); }
+}
+
+async function bulkDownload() {
+  const gids = [...sel];
+  for (const gid of gids) {
+    const f = allFiles.find(x => x.gid === gid);
+    if (f && f.mime !== 'application/vnd.google-apps.folder') {
+      await sl(300);
+      dlFile(f.gid, f.name);
+    }
+  }
+}
+
+function bulkMove()    { openMoveModal([...sel]); }
+function bulkTrash()   { bulkOp('trash'); }
+function bulkRestore() { bulkOp('restore'); }
+function bulkDelete()  {
+  if (confirm(`Permanently delete ${sel.size} item${sel.size > 1 ? 's' : ''}? This cannot be undone.`))
+    bulkOp('delete');
+}
+
+// ─── CONTEXT MENU ─────────────────────────────────────────────────────────────
+function onCtxEvent(e, gid) {
+  e.preventDefault();
+  e.stopPropagation();
+  const f = allFiles.find(x => x.gid === gid);
+  if (f) openCtx(e, f);
+}
+
+function openCtx(e, f) {
+  ctxFile = f;
+  const menu = $('ctx');
+  menu.classList.add('open');
+  const x = Math.min(e.clientX, window.innerWidth  - 190);
+  const y = Math.min(e.clientY, window.innerHeight - 230);
+  menu.style.left = x + 'px';
+  menu.style.top  = y + 'px';
+  $('ci-trash').style.display = section === 'trash' ? 'none' : '';
+  $('ci-del').style.display   = section === 'trash' ? ''     : 'none';
+  $('ci-rst').style.display   = section === 'trash' ? ''     : 'none';
+  $('ci-open').style.display  = f.view_link ? '' : 'none';
+}
+
+function closeCtx() { $('ctx').classList.remove('open'); ctxFile = null; }
+
+function ctxOpen()     { if (ctxFile && ctxFile.view_link) window.open(ctxFile.view_link, '_blank'); closeCtx(); }
+function ctxDownload() { if (ctxFile) dlFile(ctxFile.gid, ctxFile.name); closeCtx(); }
+function ctxRename()   { if (ctxFile) { openRenameModal(ctxFile.gid, ctxFile.name); closeCtx(); } }
+function ctxMove()     { if (ctxFile) { openMoveModal([ctxFile.gid]); closeCtx(); } }
+function ctxTrash()    { if (ctxFile) { trashFile(ctxFile.gid);  closeCtx(); } }
+function ctxDelete()   { if (ctxFile) { deleteFile(ctxFile.gid); closeCtx(); } }
+function ctxRestore()  { if (ctxFile) { restoreFile(ctxFile.gid); closeCtx(); } }
+
+// ─── UPLOAD ───────────────────────────────────────────────────────────────────
+function openUpload() {
+  closeNew();
+  $('file-in').click();
+}
+
+function onFilePick(files) {
+  if (!files || !files.length) return;
+  doUpload(files);
+  $('file-in').value = '';
+}
+
+async function doUpload(fileList) {
+  const files = Array.from(fileList);
+  const prog  = $('up-prog');
+  prog.classList.add('vis');
+  for (let i = 0; i < files.length; i++) {
+    const file = files[i];
+    $('up-lbl').textContent  = `Uploading ${i + 1} of ${files.length}`;
+    $('up-fn').textContent   = file.name;
+    $('up-fill').style.width = Math.round((i / files.length) * 100) + '%';
+    const fd = new FormData();
+    fd.append('file', file);
+    try {
+      const r = await fetch('/api/upload', { method: 'POST', body: fd });
+      const d = await r.json();
+      if (!r.ok) {
+        const msg = d.detail || 'Upload failed';
+        toast(msg.toLowerCase().includes('space') || msg.toLowerCase().includes('storage')
+          ? 'Not enough storage — connect more Drive accounts'
+          : 'Upload failed: ' + msg, 'err');
+      } else {
+        toast(`Uploaded to ${d.routed_to}`, 'ok');
+      }
+    } catch (_) { toast('Upload failed: ' + file.name, 'err'); }
+  }
+  $('up-fill').style.width = '100%';
+  await sl(400);
+  prog.classList.remove('vis');
+  $('up-fill').style.width = '0%';
+  await loadFiles();
+  loadStats();
+}
+
+// Drag-and-drop
+const fileArea = $('file-area');
+const dropOv   = $('drop-overlay');
+fileArea.addEventListener('dragover',  e => { e.preventDefault(); dropOv.classList.add('on'); });
+fileArea.addEventListener('dragleave', e => { if (!fileArea.contains(e.relatedTarget)) dropOv.classList.remove('on'); });
+fileArea.addEventListener('drop',      e => { e.preventDefault(); dropOv.classList.remove('on'); if (e.dataTransfer.files.length) doUpload(e.dataTransfer.files); });
+
+// ─── NEW FOLDER ───────────────────────────────────────────────────────────────
+function openMkdir() {
+  closeNew();
+  $('mkdir-name').value = 'Untitled folder';
+  populateAccountSelects();
+  openM('m-mkdir');
+  setTimeout(() => $('mkdir-name').select(), 60);
+}
+
+async function submitMkdir() {
+  const name = $('mkdir-name').value.trim();
+  const aid  = $('mkdir-acct').value;
+  if (!name) { toast('Folder name required', 'err'); return; }
+  if (!aid)  { toast('Select a Drive account', 'err'); return; }
+  const btn = $('mkdir-ok');
+  btn.disabled = true; btn.textContent = 'Creating…';
+  try {
+    const fd = new FormData();
+    fd.append('name', name);
+    fd.append('account_id', aid);
+    await fetch('/api/mkdir', { method: 'POST', body: fd });
+    toast('Folder created: ' + name, 'ok');
+    closeM('m-mkdir');
+    await loadFiles();
+  } catch (e) { toast(e.message, 'err'); }
+  finally { btn.disabled = false; btn.textContent = 'Create'; }
+}
+
+// ─── MODALS ───────────────────────────────────────────────────────────────────
+function openM(id)  { $(id).classList.add('open'); }
+function closeM(id) { $(id).classList.remove('open'); }
+
+['m-rename','m-move','m-mkdir'].forEach(id => {
+  const el = $(id);
+  if (el) el.addEventListener('click', e => { if (e.target === el) closeM(id); });
+});
+
+// ─── NEW DROPDOWN ─────────────────────────────────────────────────────────────
+function toggleNew() { $('new-dd').classList.toggle('open'); }
+function closeNew()  { $('new-dd').classList.remove('open'); }
+
+
+// ─── CHANGE PASSWORD ──────────────────────────────────────────────────────────
+function openChangePassword() {
+  document.getElementById('cp-cur').value = '';
+  document.getElementById('cp-new').value = '';
+  document.getElementById('cp-cnf').value = '';
+  document.getElementById('cp-err').style.display = 'none';
+  document.getElementById('m-chpw').classList.add('open');
+  setTimeout(() => document.getElementById('cp-cur').focus(), 60);
+}
+
+async function submitChangePassword() {
+  const cur = document.getElementById('cp-cur').value;
+  const nw  = document.getElementById('cp-new').value;
+  const cnf = document.getElementById('cp-cnf').value;
+  const errEl = document.getElementById('cp-err');
+  const showCpErr = msg => { errEl.textContent = msg; errEl.style.display = 'block'; };
+  errEl.style.display = 'none';
+  if (!cur) { showCpErr('Enter your current password'); return; }
+  if (nw.length < 8) { showCpErr('New password must be at least 8 characters'); return; }
+  if (nw !== cnf) { showCpErr('New passwords do not match'); return; }
+  const btn = document.getElementById('cp-ok');
+  btn.disabled = true; btn.textContent = 'Changing…';
+  try {
+    const r = await api('/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current_password: cur, new_password: nw })
+    });
+    toast('Password changed successfully', 'ok');
+    document.getElementById('m-chpw').classList.remove('open');
+  } catch (e) { showCpErr(e.message); }
+  finally { btn.disabled = false; btn.textContent = 'Change Password'; }
+}
+
+// Close change-pw modal on backdrop click
+document.getElementById('m-chpw').addEventListener('click', e => {
+  if (e.target === document.getElementById('m-chpw'))
+    document.getElementById('m-chpw').classList.remove('open');
+});
+
+// ─── AUTH ─────────────────────────────────────────────────────────────────────
+function addAccount() { location.href = '/auth/google/start'; }
+async function signOut() {
+  await fetch('/api/auth/logout', { method: 'POST' }).catch(() => {});
+  location.href = '/login';
+}
+
+
+// ─── PROFILE MENU ─────────────────────────────────────────────────────────────
+let _profLoaded = false;
+function toggleProfileMenu() {
+  const m = $('prof-menu');
+  m.classList.toggle('open');
+  if (m.classList.contains('open') && !_profLoaded) loadProfileName();
+}
+function closeProfileMenu() { $('prof-menu').classList.remove('open'); }
+async function loadProfileName() {
+  try {
+    const r = await fetch('/api/auth/me');
+    if (r.ok) {
+      const me = await r.json();
+      $('prof-name').textContent = me.name || me.email || 'User';
+      $('prof-email').textContent = me.email || '';
+      _profLoaded = true;
+    }
+  } catch (_) {}
+}
+
+// ─── GLOBAL EVENTS ────────────────────────────────────────────────────────────
+document.addEventListener('click', e => {
+  if ($('new-wrap') && !$('new-wrap').contains(e.target))          closeNew();
+  if (!document.querySelector('.sort-wrap').contains(e.target))    closeSortDD();
+  if ($('ctx') && !$('ctx').contains(e.target))                    closeCtx();
+  if ($('prof-menu') && !$('prof-menu').contains(e.target) && e.target !== $('av') && !$('av').contains(e.target)) closeProfileMenu();
+});
+
+document.addEventListener('keydown', e => {
+  const inInput = e.target.matches('input, textarea, select');
+  if (e.key === 'Escape') {
+    closeCtx(); closeSortDD(); closeNew();
+    ['m-rename','m-move','m-mkdir'].forEach(closeM);
+    closePreview();
+  }
+  if (!inInput && (e.key === 'Delete' || e.key === 'Backspace') && sel.size > 0) {
+    section === 'trash' ? bulkDelete() : bulkTrash();
+  }
+  if (!inInput && (e.ctrlKey || e.metaKey) && e.key === 'a') {
+    e.preventDefault();
+    getVisible().forEach(f => sel.add(f.gid));
+    updateSelUI();
+    updateBulkBar();
+  }
+});
+
+// Enter key in modals
+$('rename-inp').addEventListener('keydown', e => { if (e.key === 'Enter') submitRename(); });
+$('mkdir-name').addEventListener('keydown', e => { if (e.key === 'Enter') submitMkdir(); });
+</script>
+</body>
+</html>

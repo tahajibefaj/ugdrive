@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>UG Drive — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root[data-theme="dark"]{--bg:#0d1117;--bg2:#161b22;--bg3:#21262d;--border:#30363d;--text:#e6edf3;--text2:#8b949e;--text3:#6e7681;--green:#2ea043;--green-h:#3fb950;--green-glow:#56d364;--green-bg:#0f2d1a;--green-border:#196127;--red:#f85149;--red-bg:#2d1b1b;}
+:root[data-theme="light"]{--bg:#ffffff;--bg2:#f6f8fa;--bg3:#eaeef2;--border:#d0d7de;--text:#1f2328;--text2:#636c76;--text3:#8c959f;--green:#1a7f37;--green-h:#2ea043;--green-glow:#2ea043;--green-bg:#dafbe1;--green-border:#4ac26b;--red:#d1242f;--red-bg:#fff5f5;}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Geist',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem 1rem;transition:background .2s}
+
+.card{width:100%;max-width:400px;background:var(--bg2);border:1px solid var(--border);border-radius:14px;padding:2rem;position:relative}
+.card-logo{display:flex;align-items:center;gap:.6rem;font-weight:800;font-size:1.05rem;margin-bottom:1.75rem;justify-content:center}
+.logo-sq{width:28px;height:28px;background:var(--green);border-radius:7px;display:grid;place-items:center;color:#fff;font-weight:900;font-size:.75rem;flex-shrink:0}
+.tabs{display:flex;background:var(--bg3);border-radius:8px;padding:.25rem;margin-bottom:1.75rem}
+.tab{flex:1;padding:.5rem;border-radius:6px;font-size:.875rem;font-weight:600;cursor:pointer;border:none;background:none;color:var(--text2);transition:all .15s;font-family:'Geist',sans-serif;text-align:center}
+.tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.field{margin-bottom:1rem}
+.label{display:block;font-size:.8rem;font-weight:600;color:var(--text2);margin-bottom:.4rem}
+.input{width:100%;padding:.6rem .875rem;border:1px solid var(--border);border-radius:8px;font-size:.9rem;color:var(--text);background:var(--bg3);outline:none;font-family:'Geist',sans-serif;transition:border .15s}
+.input:focus{border-color:var(--green);background:var(--bg)}
+.input::placeholder{color:var(--text3)}
+.pw-wrap{position:relative}
+.pw-wrap .input{padding-right:2.5rem}
+.pw-eye{position:absolute;right:.75rem;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--text3);font-size:.9rem;user-select:none;transition:color .15s}
+.pw-eye:hover{color:var(--text)}
+.hint{font-size:.73rem;color:var(--text3);margin-top:.3rem}
+.strength{height:3px;border-radius:2px;margin-top:.5rem;background:var(--bg3);overflow:hidden}
+.strength-fill{height:100%;border-radius:2px;transition:width .3s,background .3s}
+.submit{width:100%;padding:.65rem;background:var(--green);border:1px solid var(--green-border);color:#fff;border-radius:8px;font-size:.95rem;font-weight:700;cursor:pointer;font-family:'Geist',sans-serif;transition:background .15s;margin-top:.25rem}
+.submit:hover{background:var(--green-h)}
+.submit:disabled{opacity:.5;cursor:not-allowed}
+.divider{display:flex;align-items:center;gap:.75rem;margin:1.25rem 0;color:var(--text3);font-size:.78rem}
+.divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+.err{background:var(--red-bg);border:1px solid var(--red);color:var(--red);padding:.6rem .875rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem;display:none}
+.err.show{display:block}
+.ok-msg{background:var(--green-bg);border:1px solid var(--green-border);color:var(--green-glow);padding:.6rem .875rem;border-radius:8px;font-size:.82rem;margin-bottom:1rem;display:none}
+.ok-msg.show{display:block}
+.footer-links{text-align:center;margin-top:1.25rem;font-size:.78rem;color:var(--text3)}
+.footer-links a{color:var(--green-glow);text-decoration:none}
+.theme-btn{position:absolute;top:1rem;right:1rem;width:30px;height:30px;border:1px solid var(--border);border-radius:7px;background:none;cursor:pointer;font-size:.85rem;display:grid;place-items:center;color:var(--text2)}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:rot .6s linear infinite;vertical-align:middle;margin-right:.4rem}
+@keyframes rot{to{transform:rotate(360deg)}}
+</style>
+</head>
+<body>
+<div class="card">
+  <button class="theme-btn" onclick="toggleTheme()" id="tbtn">☀️</button>
+  <div class="card-logo"><div class="logo-sq">UG</div>Drive</div>
+
+  <div class="tabs">
+    <button class="tab" id="tab-login" onclick="switchTab('login')">Sign in</button>
+    <button class="tab" id="tab-register" onclick="switchTab('register')">Create account</button>
+  </div>
+
+  <div class="err" id="err"></div>
+  <div class="ok-msg" id="ok"></div>
+
+  <!-- LOGIN FORM -->
+  <div id="form-login">
+    <div class="field">
+      <label class="label">Email</label>
+      <input class="input" type="email" id="l-email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label class="label">Password</label>
+      <div class="pw-wrap">
+        <input class="input" type="password" id="l-pwd" placeholder="Your password" autocomplete="current-password">
+        <span class="pw-eye" onclick="togglePw('l-pwd',this)">👁</span>
+      </div>
+    </div>
+    <div style="text-align:right;margin-top:-.3rem;margin-bottom:.875rem">
+      <a href="#" id="forgot-link" onclick="switchTab('forgot');return false" style="font-size:.78rem;color:var(--green-glow);text-decoration:none">Forgot password?</a>
+    </div>
+    <button class="submit" id="l-btn" onclick="doLogin()">Sign in</button>
+  </div>
+
+  <!-- FORGOT PASSWORD FORM -->
+  <div id="form-forgot" style="display:none">
+    <p style="font-size:.85rem;color:var(--text2);margin-bottom:1.25rem;line-height:1.6">Enter your email address and we'll generate a secure reset link for you. Copy it and open it in your browser.</p>
+    <div class="field">
+      <label class="label">Email address</label>
+      <input class="input" type="email" id="f-email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <button class="submit" id="f-btn" onclick="doForgot()">Generate Reset Link</button>
+    <!-- Reset link display -->
+    <div id="reset-link-box" style="display:none;margin-top:1rem;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.875rem">
+      <div style="font-size:.75rem;font-weight:700;color:var(--text2);margin-bottom:.5rem;text-transform:uppercase;letter-spacing:.07em">Your reset link (expires in 1 hour)</div>
+      <div id="reset-link-txt" style="font-size:.78rem;color:var(--green-glow);word-break:break-all;margin-bottom:.625rem;font-family:monospace"></div>
+      <button onclick="copyResetLink()" style="padding:.35rem .75rem;background:var(--green);border:1px solid var(--green-border);color:#fff;border-radius:6px;font-size:.78rem;font-weight:600;cursor:pointer;font-family:inherit;transition:background .15s" onmouseover="this.style.background='var(--green-h)'" onmouseout="this.style.background='var(--green)'">Copy link</button>
+    </div>
+  </div>
+
+  <!-- REGISTER FORM -->
+  <div id="form-register" style="display:none">
+    <div class="field">
+      <label class="label">Your name</label>
+      <input class="input" type="text" id="r-name" placeholder="Tahajib" autocomplete="name">
+    </div>
+    <div class="field">
+      <label class="label">Email</label>
+      <input class="input" type="email" id="r-email" placeholder="you@example.com" autocomplete="email">
+    </div>
+    <div class="field">
+      <label class="label">Password</label>
+      <div class="pw-wrap">
+        <input class="input" type="password" id="r-pwd" placeholder="Min 8 characters" autocomplete="new-password" oninput="checkStrength(this.value)">
+        <span class="pw-eye" onclick="togglePw('r-pwd',this)">👁</span>
+      </div>
+      <div class="strength"><div class="strength-fill" id="sf" style="width:0%"></div></div>
+      <div class="hint" id="sh">Use 8+ characters with numbers and symbols</div>
+    </div>
+    <div class="field">
+      <label class="label">Confirm password</label>
+      <div class="pw-wrap">
+        <input class="input" type="password" id="r-pwd2" placeholder="Repeat password" autocomplete="new-password">
+        <span class="pw-eye" onclick="togglePw('r-pwd2',this)">👁</span>
+      </div>
+    </div>
+    <button class="submit" id="r-btn" onclick="doRegister()">Create account</button>
+  </div>
+
+  <div class="footer-links" id="footer-links">
+    Don't have an account? <a href="#" onclick="switchTab('register');return false">Sign up free</a>
+  </div>
+</div>
+
+<script>
+// Theme
+function toggleTheme(){
+  const h=document.documentElement,d=h.dataset.theme==='dark';
+  h.dataset.theme=d?'light':'dark';
+  document.getElementById('tbtn').textContent=d?'🌙':'☀️';
+  localStorage.setItem('ugdrive_theme',h.dataset.theme);
+}
+const saved=localStorage.getItem('ugdrive_theme');
+if(saved){document.documentElement.dataset.theme=saved;document.getElementById('tbtn').textContent=saved==='dark'?'☀️':'🌙';}
+
+// Tab switch
+function switchTab(t){
+  const isLogin=t==='login';
+  document.getElementById('tab-login').classList.toggle('active',isLogin);
+  document.getElementById('tab-register').classList.toggle('active',!isLogin);
+  document.getElementById('form-login').style.display=isLogin?'block':'none';
+  document.getElementById('form-register').style.display=isLogin?'none':'block';
+  document.getElementById('footer-links').innerHTML=isLogin?
+    'Don\'t have an account? <a href="#" onclick="switchTab(\'register\');return false">Sign up free</a>':
+    'Already have an account? <a href="#" onclick="switchTab(\'login\');return false">Sign in</a>';
+  clearMsg();
+}
+
+// Check URL param
+const params=new URLSearchParams(location.search);
+if(params.get('tab')==='register') switchTab('register');
+else if(params.get('tab')==='forgot') switchTab('forgot');
+else switchTab('login');
+
+function showErr(msg){const e=document.getElementById('err');e.textContent=msg;e.classList.add('show');document.getElementById('ok').classList.remove('show')}
+function showOk(msg){const e=document.getElementById('ok');e.textContent=msg;e.classList.add('show');document.getElementById('err').classList.remove('show')}
+function clearMsg(){document.getElementById('err').classList.remove('show');document.getElementById('ok').classList.remove('show')}
+
+function togglePw(id,el){const i=document.getElementById(id);i.type=i.type==='password'?'text':'password';el.textContent=i.type==='password'?'👁':'🙈'}
+
+function checkStrength(pwd){
+  const sf=document.getElementById('sf'),sh=document.getElementById('sh');
+  let score=0,label='Too short';
+  if(pwd.length>=8)score++;
+  if(pwd.length>=12)score++;
+  if(/[0-9]/.test(pwd))score++;
+  if(/[^a-zA-Z0-9]/.test(pwd))score++;
+  if(/[A-Z]/.test(pwd)&&/[a-z]/.test(pwd))score++;
+  const colors=['#f85149','#f85149','#fb8f44','#e3b341','#2ea043','#3fb950'];
+  const labels=['Too short','Weak','Okay','Good','Strong','Very strong'];
+  const pcts=[0,20,40,60,80,100];
+  sf.style.width=pcts[score]+'%';sf.style.background=colors[score];
+  sh.textContent=labels[score];
+}
+
+async function doLogin(){
+  const email=document.getElementById('l-email').value.trim();
+  const pwd=document.getElementById('l-pwd').value;
+  if(!email||!pwd){showErr('Please fill in all fields');return}
+  const btn=document.getElementById('l-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Signing in…';
+  try{
+    const r=await fetch('/api/auth/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pwd})});
+    if(r.ok){window.location.href='/dashboard'}
+    else{const d=await r.json().catch(()=>({detail:'Incorrect email or password'}));showErr(d.detail||'Incorrect email or password')}
+  }catch{showErr('Connection error. Try again.')}
+  btn.disabled=false;btn.textContent='Sign in';
+}
+
+async function doRegister(){
+  const name=document.getElementById('r-name').value.trim();
+  const email=document.getElementById('r-email').value.trim();
+  const pwd=document.getElementById('r-pwd').value;
+  const pwd2=document.getElementById('r-pwd2').value;
+  if(!email||!pwd){showErr('Email and password are required');return}
+  if(pwd.length<8){showErr('Password must be at least 8 characters');return}
+  if(pwd!==pwd2){showErr('Passwords do not match');return}
+  const btn=document.getElementById('r-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Creating account…';
+  try{
+    const r=await fetch('/api/auth/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password:pwd,name})});
+    if(r.ok){window.location.href='/dashboard'}
+    else{const d=await r.json().catch(()=>({detail:'Registration failed'}));showErr(d.detail||'Registration failed')}
+  }catch{showErr('Connection error. Try again.')}
+  btn.disabled=false;btn.textContent='Create account';
+}
+
+async function doForgot(){
+  const email=document.getElementById('f-email').value.trim();
+  if(!email){showErr('Please enter your email');return}
+  const btn=document.getElementById('f-btn');
+  btn.disabled=true;btn.innerHTML='<span class="spin"></span>Generating link…';
+  try{
+    const r=await fetch('/api/auth/forgot-password',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d=await r.json().catch(()=>({}));
+    if(r.ok && d.reset_url){
+      document.getElementById('reset-link-box').style.display='block';
+      document.getElementById('reset-link-txt').textContent=d.reset_url;
+      showOk('Reset link generated. Copy it and open it in your browser.');
+    } else {
+      showErr(d.detail||'Could not generate reset link.');
+    }
+  }catch{showErr('Connection error. Try again.')}
+  btn.disabled=false;btn.textContent='Generate Reset Link';
+}
+
+function copyResetLink(){
+  const txt=document.getElementById('reset-link-txt').textContent;
+  navigator.clipboard.writeText(txt).then(()=>{
+    showOk('Link copied to clipboard!');
+  }).catch(()=>{
+    // fallback
+    const ta=document.createElement('textarea');
+    ta.value=txt;document.body.appendChild(ta);ta.select();
+    document.execCommand('copy');document.body.removeChild(ta);
+    showOk('Link copied!');
+  });
+}
+
+// Enter key
+document.addEventListener('keydown',e=>{
+  if(e.key!=='Enter')return;
+  if(document.getElementById('form-login').style.display!=='none')doLogin();
+  else doRegister();
+});
+</script>
+</body>
+</html>

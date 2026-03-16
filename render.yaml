@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: ugdrive
+    env: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python startup.py
+    healthCheckPath: /api/ping
+    envVars:
+      - key: BASE_URL
+        sync: false
+      - key: GOOGLE_SECRETS_JSON
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 10000
