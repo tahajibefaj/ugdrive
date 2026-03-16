@@ -2,12 +2,13 @@
 UG Drive — Unlimited Google Drive
 Persistent tokens via Supabase · JWT auth · FastAPI
 """
-import os, pickle, io, base64, secrets, time, smtplib
+import os, pickle, io, base64, secrets, time, json
 from secrets import token_urlsafe
 from pathlib import Path
 from typing import Optional
 from datetime import datetime, timedelta, timezone
-from email.message import EmailMessage
+from urllib.request import Request, urlopen
+from urllib.error import HTTPError, URLError
 
 import bcrypt
 import jwt as PyJWT
@@ -88,41 +89,39 @@ def generate_reset_code() -> str:
     return f"{int.from_bytes(os.urandom(3), 'big') % 1_000_000:06d}"
 
 def send_reset_code_email(to_email: str, code: str):
-    smtp_host = os.getenv("SMTP_HOST", "")
-    smtp_port = int(os.getenv("SMTP_PORT", "587"))
-    smtp_user = os.getenv("SMTP_USER", "")
-    smtp_pass = os.getenv("SMTP_PASS", "")
-    smtp_from = os.getenv("SMTP_FROM", smtp_user or "no-reply@ugdrive.local")
+    resend_api_key = os.getenv("RESEND_API_KEY", "")
 
-    if not smtp_host:
+    if not resend_api_key:
         print(f"[UGDRIVE][RESET_CODE][DEV_FALLBACK] {to_email} code={code}")
         return
 
-    msg = EmailMessage()
-    msg["Subject"] = "UG Drive password reset code"
-    msg["From"] = smtp_from
-    msg["To"] = to_email
-    msg.set_content(
-        f"Your UG Drive verification code is: {code}\n\n"
-        "This code expires in 10 minutes."
-    )
+    payload = {
+        "from": "UG Drive <onboarding@resend.dev>",
+        "to": [to_email],
+        "subject": "UG Drive Password Reset Code",
+        "text": f"Your password reset verification code is: {code}",
+    }
 
     try:
-        print(f"[UGDRIVE][SMTP] Connecting to SMTP server... host={smtp_host} port={smtp_port}")
-        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as smtp:
-            print("[UGDRIVE][SMTP] Starting TLS...")
-            smtp.starttls()
-            print("[UGDRIVE][SMTP] TLS started successfully")
-            if smtp_user:
-                print(f"[UGDRIVE][SMTP] Logging into SMTP... user={smtp_user}")
-                smtp.login(smtp_user, smtp_pass)
-                print("[UGDRIVE][SMTP] SMTP login successful")
-            else:
-                print("[UGDRIVE][SMTP] SMTP_USER is empty, skipping login")
-            print(f"[UGDRIVE][SMTP] Sending reset email... to={to_email}")
-            smtp.send_message(msg)
-            print(f"[UGDRIVE][SMTP] Reset email sent successfully to={to_email}")
-    except Exception as e:
+        print("[UGDRIVE][SMTP] Connecting to SMTP server... (Resend HTTPS API)")
+        print("[UGDRIVE][SMTP] Starting TLS... (handled by HTTPS)")
+        print("[UGDRIVE][SMTP] Logging into SMTP... (Bearer API key)")
+
+        req = Request(
+            "https://api.resend.com/emails",
+            data=json.dumps(payload).encode("utf-8"),
+            headers={
+                "Authorization": f"Bearer {resend_api_key}",
+                "Content-Type": "application/json",
+            },
+            method="POST",
+        )
+
+        print(f"[UGDRIVE][SMTP] Sending reset email... to={to_email}")
+        with urlopen(req, timeout=20) as resp:
+            body = resp.read().decode("utf-8", errors="replace")
+            print(f"[UGDRIVE][SMTP] Reset email sent successfully to={to_email} status={resp.status} response={body}")
+    except (HTTPError, URLError, Exception) as e:
         print(f"[UGDRIVE][SMTP] SMTP ERROR: {e}")
         raise
 
