@@ -107,11 +107,24 @@ def send_reset_code_email(to_email: str, code: str):
         "This code expires in 10 minutes."
     )
 
-    with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as smtp:
-        smtp.starttls()
-        if smtp_user:
-            smtp.login(smtp_user, smtp_pass)
-        smtp.send_message(msg)
+    try:
+        print(f"[UGDRIVE][SMTP] Connecting to SMTP server... host={smtp_host} port={smtp_port}")
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=20) as smtp:
+            print("[UGDRIVE][SMTP] Starting TLS...")
+            smtp.starttls()
+            print("[UGDRIVE][SMTP] TLS started successfully")
+            if smtp_user:
+                print(f"[UGDRIVE][SMTP] Logging into SMTP... user={smtp_user}")
+                smtp.login(smtp_user, smtp_pass)
+                print("[UGDRIVE][SMTP] SMTP login successful")
+            else:
+                print("[UGDRIVE][SMTP] SMTP_USER is empty, skipping login")
+            print(f"[UGDRIVE][SMTP] Sending reset email... to={to_email}")
+            smtp.send_message(msg)
+            print(f"[UGDRIVE][SMTP] Reset email sent successfully to={to_email}")
+    except Exception as e:
+        print(f"[UGDRIVE][SMTP] SMTP ERROR: {e}")
+        raise
 
 def store_reset_code(sb: Client, user_id: str, code: str):
     token = f"CODE:{code}:{token_urlsafe(8)}"
