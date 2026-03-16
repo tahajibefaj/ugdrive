@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>UG Drive • Profile</title>
+  <style>
+    :root{
+      --bg:#0d1117; --bg2:#161b22; --bg3:#21262d; --text:#e6edf3; --muted:#8b949e;
+      --green:#2ea043; --green2:#56d364; --border:#30363d; --red:#f85149;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:"IBM Plex Sans",system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+    .wrap{max-width:980px;margin:28px auto;padding:0 16px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+    .back{color:var(--green2);text-decoration:none;font-size:.92rem}
+    .back:hover{text-decoration:underline}
+    .title{margin:0;font-size:1.35rem}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+    .card{background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:16px}
+    .card h2{margin:0 0 12px;font-size:1rem}
+    .row{display:flex;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid #242b33}
+    .row:last-child{border-bottom:0}
+    .k{color:var(--muted);font-size:.9rem}
+    .v{font-size:.92rem;text-align:right;word-break:break-word}
+    .accounts{display:flex;flex-direction:column;gap:10px;max-height:360px;overflow:auto}
+    .acct{border:1px solid var(--border);border-radius:10px;padding:10px;background:var(--bg3)}
+    .acct .e{font-size:.91rem}
+    .acct .m{font-size:.78rem;color:var(--muted);margin-top:3px}
+    .err{color:var(--red);font-size:.88rem}
+    .muted{color:var(--muted);font-size:.9rem}
+    @media (max-width:860px){.grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <a class="back" href="/dashboard">← Back to dashboard</a>
+      <h1 class="title">Profile</h1>
+      <a class="back" href="/settings">Go to settings →</a>
+    </div>
+
+    <div class="grid">
+      <section class="card">
+        <h2>Account details</h2>
+        <div class="row"><span class="k">Name</span><span class="v" id="name">Loading…</span></div>
+        <div class="row"><span class="k">Email</span><span class="v" id="email">Loading…</span></div>
+        <div class="row"><span class="k">User ID</span><span class="v" id="uid">Loading…</span></div>
+        <div class="row"><span class="k">Joined</span><span class="v" id="created">Loading…</span></div>
+      </section>
+
+      <section class="card">
+        <h2>Connected Google Drive accounts</h2>
+        <div id="accounts" class="accounts"><div class="muted">Loading accounts…</div></div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    function hb(bytes){
+      const n = Number(bytes || 0);
+      if (!n) return '0 B';
+      const u=['B','KB','MB','GB','TB']; let i=0,v=n;
+      while(v>=1024 && i<u.length-1){v/=1024;i++;}
+      return `${v.toFixed(1)} ${u[i]}`;
+    }
+
+    async function loadProfile(){
+      const meRes = await fetch('/api/auth/me');
+      if (!meRes.ok){ location.href='/login'; return; }
+      const me = await meRes.json();
+      document.getElementById('name').textContent = me.name || '—';
+      document.getElementById('email').textContent = me.email || '—';
+      document.getElementById('uid').textContent = me.id || '—';
+      document.getElementById('created').textContent = me.created_at ? new Date(me.created_at).toLocaleString() : '—';
+
+      const box = document.getElementById('accounts');
+      try{
+        const accRes = await fetch('/api/accounts');
+        const accs = accRes.ok ? await accRes.json() : [];
+        if(!accs.length){ box.innerHTML = '<div class="muted">No drive accounts connected yet.</div>'; return; }
+        box.innerHTML = accs.map(a => {
+          const free = Math.max(0, Number(a.total_bytes||0) - Number(a.used_bytes||0));
+          return `<div class="acct">
+              <div class="e">${(a.email||'Unknown account').replace(/</g,'&lt;')}</div>
+              <div class="m">Used ${hb(a.used_bytes)} / ${hb(a.total_bytes)} · Free ${hb(free)}</div>
+              <div class="m">Last sync: ${a.synced_at ? new Date(a.synced_at).toLocaleString() : 'Never'}</div>
+            </div>`;
+        }).join('');
+      }catch{
+        box.innerHTML = '<div class="err">Failed to load connected accounts.</div>';
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>
